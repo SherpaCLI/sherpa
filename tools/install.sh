@@ -139,11 +139,11 @@ _clone_repo() {
 _add_to_path() {
 
   # Check if ~/.zherpa directory exists and add it to the PATH using pathman
-  if [ -d "$HOME/.sherpa" ]; then
-    echo "$HOME/.sherpa directory exists, adding to PATH..."
-    pathman add "$HOME/.sherpa"
+  if [ -d "$HOME/.sherpa/bin" ]; then
+    echo "$HOME/.sherpa/bin directory exists, adding to PATH..."
+    pathman add "$HOME/.sherpa/bin"
   else
-    echo "$HOME/.sherpa directory does not exist."
+    echo "$HOME/.sherpa/bin directory does not exist."
   fi
 }
 
