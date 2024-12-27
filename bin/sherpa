@@ -1,0 +1,757 @@
+#!/usr/bin/env bash
+readonly -a ARGS=("$@")          # All Position Args
+readonly SDD="$HOME/.sherpa"     # Sherpa Dot-Dir
+readonly SCD="$HOME/code/sherpa" # Sherpa Custom-Dir
+readonly EDITOR="vim"            # Default Editor
+readonly BIN="${SDD}/bin"        # Default Editor
+set -eo pipefail
+use() {
+local file="$1" # ex std/fmt
+local dotdir="${SDD}/lib"
+local custom="${SCD}/lib"
+if [ -f "${custom}/${file}.sh" ]; then
+source "${custom}/${file}.sh"
+elif [ -f "${dotdir}/${file}.sh" ]; then
+source "${dotdir}/${file}.sh"
+fi
+}
+github() {
+local url=""
+local repo=""
+local branch="master"
+local file=""
+while getopts "u:r:b:f:" opt; do
+case $opt in
+u) url=$OPTARG ;;
+r) repo=$OPTARG ;;
+b) branch=$OPTARG ;;
+f) file=$OPTARG ;;
+*) echo "Invalid flag" ;;
+esac
+done
+if [[ $url != "" ]]; then
+. <(curl -s "$url")
+elif [[ $repo != "" ]]; then
+local fullUrl="https://raw.githubusercontent.com/${repo}/refs/heads/${branch}/${file}"
+. <(curl -s "$fullUrl")
+else
+echo "Opps. Something went wrong."
+exit 1
+fi
+}
+add_yaml_item() {
+local key="$1"
+local value="$2"
+local file="$3"
+yq -i ".$key = \"$value\"" "$file"
+}
+get_yaml_item() {
+local key="$1"
+local file="$2"
+yq e ".$key" "$file"
+}
+update_yaml_item() {
+local key="$1"
+local newValue="$2"
+local file="$3"
+yq -i ".$key = \"$newValue\"" "$file"
+}
+remove_yaml_item() {
+local key="$1"
+local file="$2"
+yq -i "del(.$key)" "$file"
+}
+print_yaml_items() {
+local file="$1"
+yq eval "." "$file"
+}
+add_config() {
+local key="$1"
+local value="$2"
+local file="$3"
+yq -i ".$key = \"$value\"" "$file"
+}
+add_conf() {
+local key="$1"
+local value="$2"
+yq -i ".$key = \"$value\"" ./Sherpa.yaml
+}
+get_config() {
+local key="$1"
+yq e ".$key" Sherpa.yaml
+}
+get_conf() {
+local key="$1"
+local file="$2"
+yq e ".$key" "$file"
+}
+update_config() {
+local key="$1"
+local newValue="$2"
+yq -i ".$key = \"$newValue\"" ./Sherpa.yaml
+}
+remove_config() {
+local key="$1"
+yq -i "del(.$key)" ./Sherpa.yaml
+}
+strong="\033[1m"   # Make it Bold
+disabled="\033[2m" # Make it Dimmed
+em="\033[3m"       # Make it Italic
+u="\033[4m"        # Make it Underlined
+end="\033[0m" # Make it </end>
+x="\033[0m"   # Make it </end> but shorter
+txtBlack="\033[30m"   # .text-red
+txtRed="\033[31m"     # .text-red
+txtGreen="\033[32m"   # .text-green
+txtYellow="\033[33m"  # .text-yellow
+txtBlue="\033[34m"    # .text-blue
+txtMagenta="\033[35m" # .text-magenta
+txtCyan="\033[36m"    # .text-cyan
+txtWhite="\033[37m"   # .text-white
+bgBlack="\033[40m"     # .bg-black
+bgRed="\033[41m"       # .bg-red
+bgGreen="\033[42m"     # .bg-green
+bgYellow="\033[43m"    # .bg-yellow
+bgBlue="\033[44m"      # .bg-blue
+bgMagenta="\033[45m"   # .bg-magenta
+bgCyan="\033[46m"      # .bg-cyan
+bgLightGray="\033[37m" # .bg-lightGray
+icoLeaf="\ue22f"
+primaryColor="Green"
+case $primaryColor in
+Black)
+txtPrimary=${txtBlack}
+;;
+Red)
+txtPrimary=${txtRed}
+;;
+Green)
+txtPrimary=${txtGreen}
+;;
+Yellow)
+txtPrimary=${txtYellow}
+;;
+Blue)
+txtPrimary=${txtBlue}
+;;
+Magenta)
+txtPrimary=${txtMagenta}
+;;
+Cyan)
+txtPrimary=${txtCyan}
+;;
+White)
+txtPrimary=${txtWhite}
+;;
+*)
+txtPrimary=""
+;;
+esac
+btnSuccess="${bgGreen}${txtBlack}"
+link="${u}${em}${txtBlue}"
+text-center() {
+local -i TERM_COLS
+local -i str_len
+local -i filler_len
+local filler
+TERM_COLS=$(tput cols)
+str_len=${#1}
+filler_len=$(((TERM_COLS - str_len) / 2))
+filler=$(printf '%*s' "$filler_len" '' | tr ' ' ' ')
+printf "%s%s\n" "$filler" "$1"
+}
+fetch() {
+local endpoint="$1"
+local response
+response=$(curl -s -X GET "$endpoint")
+echo "$response"
+}
+h1() {
+printf "\n%b%b%s%b\n" "$strong" "$txtPrimary" "$1" "$x"
+}
+h2() {
+printf "%b%s%b\n" "$txtPrimary" "$1" "$x"
+}
+h3() {
+printf "%b%b%s%b\n" "$txtPrimary" "$em" "$1" "$x"
+}
+p() {
+echo -e " $1"
+}
+span() {
+printf "%s" "$1"
+}
+br() {
+printf "\n"
+}
+em() {
+printf "%b%s%b" "$em" "$1" "$x"
+}
+strong() {
+printf "%b%s%b" "$strong" "$1" "$x"
+}
+hr() {
+[[ $# == 0 ]] && return 1
+declare -i TERM_COLS
+declare -i str_len
+TERM_COLS="$(tput cols)"
+str_len="((${#1} + 2))"
+[[ $str_len -ge $TERM_COLS ]] && {
+echo "$1"
+return 0
+}
+declare -i filler_len="$(((TERM_COLS - str_len) / 2))"
+[[ $# -ge 2 ]] && ch="${2:0:1}" || ch=" "
+filler=""
+for ((i = 0; i < filler_len; i++)); do
+filler="${filler}${ch}"
+done
+printf "%s %s %s" "$filler" "$1" "$filler"
+[[ $(((TERM_COLS - str_len) % 2)) -ne 0 ]] && printf "%s" "${ch}"
+printf "\n"
+return 0
+}
+a() {
+echo -e "${u}${em}${txtBlue}$1${x}"
+}
+flex-between() {
+left_text=$1
+right_text=$2
+width=$(tput cols)
+right_position=$((width - ${#right_text}))
+printf "%s%*s\n" "$left_text" $((right_position - ${#left_text})) ""
+printf "%s\n" "$right_text"
+}
+modify_value() {
+local key="$1"
+local new_value="$2"
+local filename="$3"
+sed -i -E "s/^(${key}\s*=\s*).*/\1${new_value}/" "$filename"
+}
+hello_link() {
+echo
+echo "Hello from tent/symlink.sh"
+echo
+}
+_is_command() {
+local link_name=$1
+if command -v "$link_name" &> /dev/null; then
+echo "Error: A command with the name '$link_name' already exists."
+exit 1
+fi
+}
+_sl_exists() {
+local target_dir=$1
+local link_name=$2
+if [ -L "$target_dir/$link_name" ]; then
+echo "Error: A symlink named '$link_name' already exists in $target_dir."
+exit 1
+fi
+}
+_sl_create() {
+file_path=$1
+target_dir=$2
+link_name=$3
+ln -s "$file_path" "$target_dir/$link_name"
+}
+symlink_add() {
+local file_path=$1
+local target_dir=$2
+local link_name=$3
+local link=${target_dir}/${link_name}
+_sl_exists "$target_dir" "$link_name"
+_sl_create "$file_path" "$target_dir" "$link_name"
+if [[ $? == 0 ]]; then
+p "Symlink created successfully."
+else
+p "Error creating symlink."
+exit 1
+fi
+}
+symlink_remove() {
+link=$1
+rm -i $link
+[[ ! -L $link ]] && echo "'cause now I'm freeeee"
+}
+symlinks_list() {
+local dir="${1:-$HOME/.sherpa/bin}"
+while IFS= read -r -d '' file; do
+if [ -L "$file" ]; then
+echo "$(basename "$file") -> $(readlink -f "$file")"
+fi
+done < <(find "$dir" -type l -print0)
+}
+declare -g strong
+declare -g txtBlue
+declare -g txtGreen
+declare -g x
+color="" # String
+usage() {
+clear
+h1 " Welcome, I'm your Sh:erpa 👋"
+hr "sh:help" "-"
+br
+p "${strong}${txtBlue}Usage:${x}"" ${txtGreen}sherpa [option] <command> [arg]${x}"
+br
+p "${strong}${txtBlue}Options:${x}"
+echo "  -h | --help       Display the usage message."
+echo "  -v | --version    Display script Version."
+echo "  -V | --verbose    Enable Verbose mode."
+echo "  -q | --quiet      Continue force execution."
+br
+p "${strong}${txtBlue}Commands:${x}"
+p "  ${txtGreen}build${x}, ${txtGreen}b${x}    Compile the curent package"
+p "  ${txtGreen}check${x}, ${txtGreen}c${x}    Analyse the current package"
+p "  ${txtGreen}clean${x}       Remove the target directory"
+p "  ${txtGreen}doc${x}, ${txtGreen}d${x}      Build the package documentation"
+p "  ${txtGreen}edit${x}, ${txtGreen}e${x}     Open files in default Editor"
+p "  ${txtGreen}init${x}        Create package in existing dir"
+p "  ${txtGreen}link${x}        Manakge symlinks on files or dirs"
+p "  ${txtGreen}new${x}         Create a new sherpa package"
+p "  ${txtGreen}run${x}, ${txtGreen}r${x}      Build and run a binary or script"
+p "  ${txtGreen}test${x}, ${txtGreen}t${x}     Run the tests from the tests dir"
+br
+p "See '${txtGreen}${strong}sherpa${x}${txtGreen} help <command>${x}' for more information on a specific command."
+br
+}
+while getopts ":hvc:Vq-:" opt; do
+case $opt in
+h)
+usage
+;;
+v)
+printf "%s v%s\n" "Sh:erpa" "$(get_yaml_item "version" "${SDD}/Sherpa.yaml")"
+;;
+c)
+color=${OPTARG}
+;;
+V)
+verb="on"
+;;
+q)
+quiet="on"
+;;
+-)
+case "${OPTARG}" in
+help)
+usage
+;;
+version)
+printf "%s v%s\n" "$SCRIPT_NAME" "$VERSION"
+[[ -n "$REPO" ]] && printf "Repo: %s\n" "$REPO"
+;;
+verbose)
+verb="on"
+;;
+quiet)
+quiet="on"
+;;
+*)
+echo "Unknown option --${OPTARG}" >&2
+exit 1
+;;
+esac
+;;
+\?)
+echo "Invalid option: -$OPTARG" >&2
+exit 1
+;;
+:)
+echo "Option -$OPTARG requires an argument." >&2
+exit 1
+;;
+esac
+done
+shift $((OPTIND - 1))
+declare -g em
+declare -g x
+if [[ "$#" == 0 ]]; then # Home Route
+clear
+h1 " Welcome to 👋 Sh:erpa"
+hr "= + =" "-" # -----------= + =-----------
+text-center "$(date +%T)"
+br
+br
+h2 "A glimpse of what we can do so far:"
+br
+p "* Modular structure instead of all-in"
+p "* GetOpt short & long Flags pre-configured"
+p "* Fetch remote Json API data"
+p "* CRUD on local .yaml data files"
+p "* Cargo'like projects management"
+p "* Pug'like semantic text output"
+p "* Custom CSS'like formating"
+p "* CDN'like loading external libs"
+p "* Oh-MyBash'like Custom directory"
+p "* Source libs with ${em}'use \"std/fmt\"'${x}"
+p "* Docs generations via Shdoc & Bashdoc"
+p "* Check syntax with ShellCheck"
+p "* Integrated Tests suite via BashUnit"
+p "* Final script minimization after docs gen'"
+p "* Compile to a binary via SHC"
+p "* Included external programs in .sherpa/bin"
+p "* Next: Somehow dependencies management & publishing"
+br
+p "$(strong "TODO:")"
+br
+fi # End Home Route
+if [[ "$1" == "bashdoc" ]]; then # Bashdoc
+if [[ ! -f Sherpa.yaml ]]; then
+p "Opps. Probably not in a project root."
+exit 1
+fi
+SRC_DIR="src"
+DOCS_DIR="docs"
+HBS="${SDD}/templates/bashdoc.hbs"
+[[ ! -d "$DOCS_DIR" ]] && mkdir -p "$DOCS_DIR"
+for script in "$SRC_DIR"/*.sh; do
+if [[ -f "$script" ]]; then
+base_name=$(basename "$script" .sh)
+bashdoc -c -j -l "${DOCS_DIR}" -t "${HBS}" $script
+fi
+done
+fi # End Bashdoc
+if [[ "$1" == "compile" ]]; then # Compile
+executable="$(get_yaml_item "package.executable" Sherpa.yaml)"
+script="target/local/${executable}"
+scriptCopy="/tmp/${executable}-copy"
+if [[ ! -f "target/local/${executable}" ]]; then # IsFile
+p "Oops! Run first: ${em}sherpa make${x}"
+exit 1
+else
+[[ ! -d "target/bin" ]] && mkdir target/bin
+cp "$script" "$scriptCopy"
+sed -i 's|#!/usr/bin/env bash|#!/bin/bash|g' "$scriptCopy"
+echo "Compiling to Binary via SHC..."
+export CC=gcc
+shc -vrf "$scriptCopy" -o "target/bin/${executable}"
+if [[ "$?" == 0 ]]; then
+br
+p "${btnSuccess} Done! ${x} The binary is stored in target/bin"
+rm ${scriptCopy}
+br
+symlink="${SDD}/bin/${executable}"
+target=$(readlink -f "$symlink")
+if [[ "$target" != *"target/bin"* ]]; then
+rm "$symlink"
+ln -s "$(pwd)/target/bin/${executable}" "${SDD}/bin/${executable}"
+echo "Symlink updated successfully."
+else
+echo "bin/${executable} still Symlinked to ${SDD}/bin"
+fi
+else
+br
+p "Ooops! Command failed, with the ${?} exit code."
+br
+fi
+fi # End IsFile
+fi   # End Compile
+if [[ $1 == "edit" || $1 == "e" ]]; then # Edit
+fileToEdit=$2
+if [[ "$fileToEdit" == "bin" ]]; then # Options
+if [[ -f "src/bin.sh" ]]; then
+${EDITOR} src/bin.sh
+else
+br
+p "Oops. No src/bin.sh file from here."
+em "Make sure you are in a project root"
+br
+fi
+elif [[ "$fileToEdit" == "opt" ]]; then
+if [[ -f "src/_options.sh" ]]; then
+${EDITOR} src/_options.sh
+else
+br
+p "Oops. No src/_options.sh file from here."
+em "Make sure you are in a project root"
+br
+fi
+elif [[ "$fileToEdit" == "basecamp" ]]; then
+if [[ -f "${SDD}/basecamp.sh" ]]; then
+${EDITOR} "${SDD}/basecamp.sh"
+else
+br
+p "Oops. Can't reach the basecamp."
+em "Make sure Sherpa is corectly installed"
+br
+fi
+elif [[ "$fileToEdit" == "yaml" ]]; then
+if [[ -f "Sherpa.yaml" ]]; then
+${EDITOR} "Sherpa.yaml"
+else
+br
+p "Oops. Can't find the Sherpa.yaml file."
+em "Make sure you are in a project root"
+br
+fi
+fi # end Options
+fi   # end Edit
+if [[ "$1" == "link" ]]; then # Link
+file_path="$(pwd)/target/debug/${PKG_NAME}.sh"
+target_dir="${SDD}/bin"
+link_name="${PKG_NAME}"
+link=${target_dir}/${link_name}
+if [[ $# == 1 ]]; then
+hello_link
+symlink_add "$file_path" "$target_dir" "$link_name"
+fi
+if [[ "$2" == "rm" ]]; then
+if [[ -n "$3" && -L "${target_dir}/$3" ]]; then
+symlink_remove "${target_dir}/$3"
+p "Link ${3} is removed."
+exit 0
+else
+p "Can't find the link ${3}."
+exit 1
+fi
+symlink_remove "${target_dir}/$link_name"
+fi
+fi # End link
+if [[ "$1" == "links" ]]; then
+br
+p "Symlinks:"
+symlinks_list
+br
+fi
+quiet="off"
+verb="off"
+if [[ "$1" == "build" || "$1" == "b" ]]; then
+shebang="src/_header.sh"
+sourceOrder="src/__paths.txt"
+combinedScript="scriptAlmost.sh"
+finalScript="$(get_yaml_item "package.executable" "Sherpa.yaml")"
+type="" # bin|lib|exe(executable .sh file)
+while getopts "u:r:b:f:" opt; do
+case $opt in
+t) type=$OPTARG ;;
+*) echo "Invalid flag" ;;
+esac
+done
+[[ ! -d target ]] && mkdir target
+[[ ! -d target/local ]] && mkdir target/local
+[[ "$quiet" != "on" ]] && p "\nGenerating partials files paths..."
+[[ "$quiet" != "on" ]] && br
+use2path
+[[ "$verb" == "on" ]] && echo "VB: Combining files listed in ${sourceOrder}..."
+[[ "$verb" == "on" ]] && echo "VB: Some more lines"
+mapfile -t files <"$sourceOrder"
+cat "${files[@]}" >"$combinedScript"
+if [[ -f "$combinedScript" ]]; then
+echo
+echo "Done. Combined into ${combinedScript}!"
+echo
+echo "Generating documentation from that file"
+[[ ! -d docs ]] && mkdir docs
+shdoc <"$combinedScript" >"docs/${finalScript}.md"
+echo -e "--- Commands/Routes & nonFunctions ---\n" >>"docs/${finalScript}.md"
+bashdoc "$combinedScript" >>"docs/${finalScript}.md"
+if [[ -f "docs/${finalScript}.md" ]]; then
+p "Check docs/${finalScript}.md"
+br
+fi
+echo "- Removing comments and empty lines..."
+sed -i '/^\s*#/d; /^\s*$/d' "$combinedScript"
+echo "- Removing trailing spaces..."
+sed -i 's/[[:space:]]*$//' "$combinedScript"
+echo "- Removing the leading spaces..."
+sed -i 's/^[[:space:]]*//' "$combinedScript"
+echo "- Adding the /usr/bin/env bash Shebang..."
+[[ ! -d target ]] && mkdir "target"
+[[ ! -d target/local ]] && mkdir "target/local"
+cat "$shebang" "$combinedScript" >"target/local/$finalScript"
+rm "$combinedScript"
+[[ "$verb" == "on" ]] && p "Making ${finalScript} it executable..."
+chmod +x "target/local/$finalScript"
+echo
+p "${btnSuccess} Done! ${x} Execute it with just ${txtGreen}${em}${finalScript}${x}"
+br
+executable=$(get_yaml_item "package.executable" "Sherpa.yaml")
+symlink="${SDD}/bin/${executable}"
+target=$(readlink -f "$symlink")
+if [[ ! -L "$symlink" ]]; then
+ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
+fi
+if [[ "$target" != *"target/local"* ]]; then
+rm "$symlink"
+ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
+echo "Symlink updated successfully."
+else
+echo "local/${executable} still Symlinked to ${SDD}/bin"
+fi
+else
+echo "Quelque chose à merdé!"
+exit 1
+fi
+fi
+if [[ "$1" == "new" ]]; then # Start Route
+if [[ -z $2 ]]; then
+br
+p "${bgYellow}${txtBlack} Oops! ${x} Second argument needed."
+p "Usage: ${em}sherpa new foobar${x}"
+br
+p "It will be the directory's name, so no wild things."
+exit 1
+fi
+if [[ -n $2 ]]; then # Creation
+project=$2
+project_dir="$(pwd)/$project"
+template="binStarter"
+custom_template="${SCD}/templates/${template}"
+default_template="${SDD}/templates/${template}"
+if [[ -d ${custom_template} ]]; then
+template_files="${custom_template}"
+else
+template_files="${default_template}"
+fi
+if [[ -d "$project" ]]; then
+p "Oops! There is already a ${project} directory here."
+p "Pick a new name, for the new project ;)"
+exit 1
+fi
+mkdir "$project"
+if [[ ! -d "$project" ]]; then
+p "Couldn't create the ${project} directory"
+exit 1
+else
+cd "$project" || return
+fi
+h1 " Welcome to the basecamp 👋 intrepid voyager."
+hr "= + =" "-"
+br
+p "Unloading template's files from the truck..."
+cp -r ~/.sherpa/templates/${template}/* .
+git init
+br
+p "${btnSuccess} Done! ${x} Time to start climbing."
+p "ProjectDir is $project_dir"
+br
+p "You can follow the trail with: ${em}cd ${project}${x}"
+p "Then one of those signs:"
+p "* sherpa run         # Build and Run your project"
+p "* sherpa e bin       # Edit the main script content"
+p "* sherpa e opt       # Edit the Flags & Options"
+p "* sherpa e yaml      # Edit the Sherpa.yaml file"
+p "* sherpa e basecamp  # Edit global data"
+br
+p "...more on ${link}https://github.com/AndiKod/sherpa${x}"
+br
+echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
+update_yaml_item "package.name" "$project" "${project_dir}/Sherpa.yaml"
+update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
+key="readonly PKG_NAME"
+new_value="${project}"
+filename="./src/_globals.sh"
+sed -i -E "s/^(${key}\s*=\s*)\"([^\"]*)\"/\1\"${new_value}\"/" "$filename"
+fi #End Creation
+fi   # End Route
+if [[ "$1" == "init" ]]; then # Start Route
+if [[ -n "$(ls -A)" ]]; then # Creation
+p "It seems like this directory is not empty."
+p "I hope you know about that."
+else
+project=$(basename "$PWD")
+project_dir="$(pwd)"
+template="binStarter"
+custom_template="${SCD}/templates/${template}"
+default_template="${SDD}/templates/${template}"
+if [[ -d ${custom_template} ]]; then
+template_files="${custom_template}"
+else
+template_files="${default_template}"
+fi
+h1 " Welcome to the basecamp 👋 intrepid voyager."
+hr "= + =" "-"
+br
+p "Unloading template's files from the truck..."
+cp -r ~/.sherpa/templates/${template}/* .
+git init
+br
+p "${btnSuccess} Done! ${x} Time to start climbing."
+p "ProjectDir is $project_dir"
+br
+p "You can follow the trail with some of those:"
+p "* sherpa run         # Build and Run your project"
+p "* sherpa e bin       # Edit the main script content"
+p "* sherpa e opt       # Edit the Flags & Options"
+p "* sherpa e yaml      # Edit the Sherpa.yaml file"
+p "* sherpa e basecamp  # Edit global data"
+br
+p "...more on ${link}https://github.com/AndiKod/sherpa${x}"
+br
+echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
+update_yaml_item "package.name" "$project" "${project_dir}/Sherpa.yaml"
+update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
+key="readonly PKG_NAME"
+new_value="${project}"
+filename="./src/_globals.sh"
+sed -i -E "s/^(${key}\s*=\s*)\"([^\"]*)\"/\1\"${new_value}\"/" "$filename"
+fi #End Creation
+fi   # End Route
+if [[ "$1" == "run" || "$1" == "r" ]]; then
+shebang="src/_header.sh"
+sourceOrder="src/__paths.txt"
+combinedScript="scriptAlmost.sh"
+finalScript="$(get_yaml_item "package.executable" "Sherpa.yaml")"
+[[ ! -d target/local ]] && mkdir target/local
+use2path
+mapfile -t files <"$sourceOrder"
+cat "${files[@]}" >"$combinedScript"
+if [[ -f "$combinedScript" ]]; then
+[[ ! -d docs ]] && mkdir docs
+shdoc <"$combinedScript" >"docs/${finalScript}.md"
+echo -e "--- Commands/Routes & nonFunctions ---\n" >>"docs/${finalScript}.md"
+bashdoc "$combinedScript" >>"docs/${finalScript}.md"
+sed -i '/^\s*#/d; /^\s*$/d' "$combinedScript"
+sed -i 's/[[:space:]]*$//' "$combinedScript"
+sed -i 's/^[[:space:]]*//' "$combinedScript"
+cat "$shebang" "$combinedScript" >"target/local/$finalScript"
+rm "$combinedScript"
+chmod +x "target/local/$finalScript"
+executable=$(get_yaml_item "package.executable" "Sherpa.yaml")
+symlink="${SDD}/bin/${executable}"
+target=$(readlink -f "$symlink")
+if [[ ! -L "$symlink" ]]; then
+ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
+fi
+if [[ "$target" != *"target/local"* ]]; then
+rm "$symlink"
+ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
+"$executable"
+else
+"$executable"
+fi
+else
+echo "Quelque chose à merdé!"
+exit 1
+fi
+fi
+if [[ "$1" == "doc" || "$1" == "d" ]]; then # Shdoc
+if [[ ! -f Sherpa.yaml ]]; then
+p "Opps. Probably not in a project root."
+exit 1
+fi
+SRC_DIR="src"
+DOCS_DIR="docs"
+[[ ! -d "$DOCS_DIR" ]] && mkdir -p "$DOCS_DIR"
+for script in "$SRC_DIR"/*.sh; do
+if [[ -f "$script" ]]; then
+base_name=$(basename "$script" .sh)
+shdoc <"$script" >"$DOCS_DIR/$base_name.md"
+echo -e "--- Some more, via BashDoc ---\n" >>"$DOCS_DIR/$base_name.md"
+bashdoc "$script" >>"$DOCS_DIR/$base_name.md"
+if [[ -f "$DOCS_DIR/$base_name.md" ]]; then
+log_normal "Done! $base_name.md"
+else
+p "Can't generate doc."
+exit 1
+fi
+fi
+done
+fi # End Shdoc
+if [[ "$1" == "test" || "$1" == "t" ]]; then
+if [[ ! -f Sherpa.yaml ]]; then
+p "Ooops. You are probably not in a Sherpa project root."
+exit 1
+fi
+bashunit tests
+fi

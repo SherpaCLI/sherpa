@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+# @file use2path
+# @brief Generate a list of paths of files
+# from the (use "lib/file") statements
+
+# @description Have no better name idea for the moment
+
+# To be used from a Sherpa project root
+# Sourcing this to get acces to the global constants
+#
+# Lines of text at first printed by default,
+# should be turned on by --verbose option
+# or sent to a log file next.
+#
+. ~/.sherpa/basecamp.sh
+use "std/fmt"
+
+# Initialise variables from arguments
+input_file="src/bin.sh"       # src/bin.sh
+output_file="src/__paths.txt" # src/__paths.txt
+
+# Main files paths
+globals="src/_globals.sh"
+basecamp="${SDD}/basecamp.sh"
+options="src/_options.sh"
+libFile="src/_lib.sh"
+bin="src/bin.sh"
+
+# Empty the file, prior to re-fill it
+: >$output_file
+
+# Add the top standard paths
+echo "$globals" >>$output_file
+# p "Added ${globals}"
+
+echo "$basecamp" >>$output_file
+# p "Added ${basecamp}"
+
+# Read each line from $input_file
+while IFS= read -r line; do
+  # For each line starting with: use "somethingHere"
+  if [[ $line =~ ^use\ \"(.*)\" ]]; then # Regex
+
+    # Assign the somethingHere to $lib
+    lib="${BASH_REMATCH[1]}"
+
+    # The same lib can exist in the Sherpa-Custom-Dir
+    # and override the one in the Sherpa-Dot-Dir
+    customLib="${SCD}/lib/${lib}.sh"
+    defaultLib="${SDD}/lib/${lib}.sh"
+
+    # Set $path to custom or default version,
+    # if any exists, throw Error with a message.
+    if [[ -f "${customLib}" ]]; then # Custom vs Default
+      path="${customLib}"
+      # p "Added ${path}"
+    elif [[ -f "${defaultLib}" ]]; then
+      path="${defaultLib}"
+      # p "Added ${path}"
+    else
+      p "Can't find a ${lib}.sh file"
+      p "Or no use of src in the file"
+      exit 1
+    fi # End Custom vs Default
+
+    # append the path in the $output_file
+    echo "$path" >>"$output_file"
+
+  fi                # End Regex
+done <"$input_file" # Feed $input_file content to the script
+
+# Add the bottom standard paths
+echo "$options" >>"$output_file"
+# p ""
+
+echo "$libFile" >>$output_file
+# p "Added ${libFile}"
+
+echo "$bin" >>$output_file
+# p "Added ${bin}"
+# p "...to ${output_file}"

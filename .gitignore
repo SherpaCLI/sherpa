@@ -1,0 +1,6 @@
+# Ignore symlinks
+bin/*@
+
+# Ignore large files
+bin/pandoc
+
