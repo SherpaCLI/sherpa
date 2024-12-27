@@ -21,6 +21,8 @@ if [[ "$1" == "run" || "$1" == "r" ]]; then
   # TODO: safe checks and default value "just in case"
   finalScript="$(get_yaml_item "package.executable" "Sherpa.yaml")"
 
+  # Creating directories if necessary
+  [[ ! -d target ]] && mkdir target
   [[ ! -d target/local ]] && mkdir target/local
 
   # Generating partials files paths...
