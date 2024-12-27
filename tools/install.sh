@@ -5,6 +5,8 @@
 #  Do not use that script for real Sh:erpa install yet.
 #
 
+source "../lib/std/fmt.sh"
+
 # TODO: Import basecamp & std/fmt
 # TODO: Use colors & Icons for output
 # TODO: !More safety checks per install
@@ -12,10 +14,10 @@
 _install_cli_tools() {
   # Check if webi is installed
   if ! command -v webi &>/dev/null; then
-    echo "x Webi not found, installing..."
+    p "${txtRed}${strong}x${x} Webi not found, installing..."
     curl -sS https://webinstall.dev/webi | bash
   else
-    echo "v Webi is already installed."
+    p "${txtRed}${strong}v${x} Webi is already installed."
   fi
 
   # Check if Git is installed
