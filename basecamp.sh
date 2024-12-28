@@ -39,8 +39,9 @@ use() {
   fi
 }
 
-# Github CDN-like, sourcing distant lib.sh files
-github() {
+# Github/Codeberg CDN-like, sourcing distant lib.sh files
+# Default to Github, full url for anything else
+import() {
   local url=""
   local repo=""
   local branch="master"
