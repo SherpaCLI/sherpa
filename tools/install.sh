@@ -130,7 +130,7 @@ _clone_repo() {
   echo ""
   echo "Cloning AndiKod/sherpa into ~/.sherpa"
   echo ""
-  git clone -q https://github.com/AndiKod/sherpa.git ~/.sherpa
+  git clone -q https://github.com/SherpaBasecamp/sherpa.git ~/.sherpa
 
   [[ -d ~/.sherpa ]] && echo "Cloned!"
 
