@@ -15,7 +15,7 @@ elif [ -f "${dotdir}/${file}.sh" ]; then
 source "${dotdir}/${file}.sh"
 fi
 }
-github() {
+import() {
 local url=""
 local repo=""
 local branch="master"
@@ -692,6 +692,7 @@ shebang="src/_header.sh"
 sourceOrder="src/__paths.txt"
 combinedScript="scriptAlmost.sh"
 finalScript="$(get_yaml_item "package.executable" "Sherpa.yaml")"
+[[ ! -d target ]] && mkdir target
 [[ ! -d target/local ]] && mkdir target/local
 use2path
 mapfile -t files <"$sourceOrder"
