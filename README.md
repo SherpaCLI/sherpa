@@ -44,7 +44,7 @@ Ensure that you have curl installed, run `curl --version` and see if a number sh
 Then simply run the installer:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/AndiKod/sherpa/refs/heads/master/tools/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/SherpaBasecamp/sherpa/refs/heads/master/tools/install.sh | sudo bash
 ```
 
 It will do three things:
