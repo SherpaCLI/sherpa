@@ -14,3 +14,4 @@
 /home/andikod/.sherpa/src/commands/run.sh
 /home/andikod/.sherpa/src/commands/doc.sh
 /home/andikod/.sherpa/src/commands/test.sh
+/home/andikod/.sherpa/src/commands/install.sh

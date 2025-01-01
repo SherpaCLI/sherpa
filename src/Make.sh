@@ -44,6 +44,7 @@ if [[ "$#" == 0 ]]; then
   run="${SDD}/src/commands/run.sh"
   doc="${SDD}/src/commands/doc.sh"
   test="${SDD}/src/commands/test.sh"
+  install="${SDD}/src/commands/install.sh"
 
   # Empty the file, prior to re-fill it
   : >$output_file
@@ -102,6 +103,9 @@ if [[ "$#" == 0 ]]; then
 
   echo "$test" >>$output_file
   p "Added ${test}"
+
+  echo "$install" >>$output_file
+  p "Added ${install}"
 
   p "...to ${output_file}"
 

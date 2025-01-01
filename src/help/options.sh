@@ -42,17 +42,18 @@ usage() {
   br
   p "${strong}${txtBlue}Commands:${x}"
   p "  ${txtGreen}build${x}, ${txtGreen}b${x}    Compile the curent package"
-  p "  ${txtGreen}check${x}, ${txtGreen}c${x}    Analyse the current package"
-  p "  ${txtGreen}clean${x}       Remove the target directory"
+  #p "  ${txtGreen}check${x}, ${txtGreen}c${x}    Analyse the current package"
+  #p "  ${txtGreen}clean${x}       Remove the target directory"
   p "  ${txtGreen}doc${x}, ${txtGreen}d${x}      Build the package documentation"
   p "  ${txtGreen}edit${x}, ${txtGreen}e${x}     Open files in default Editor"
   p "  ${txtGreen}init${x}        Create package in existing dir"
-  p "  ${txtGreen}link${x}        Manakge symlinks on files or dirs"
+  p "  ${txtGreen}links${x}        Show symlinks from .sherpa/bin"
   p "  ${txtGreen}new${x}         Create a new sherpa package"
   p "  ${txtGreen}run${x}, ${txtGreen}r${x}      Build and run a binary or script"
   p "  ${txtGreen}test${x}, ${txtGreen}t${x}     Run the tests from the tests dir"
   br
-  p "See '${txtGreen}${strong}sherpa${x}${txtGreen} help <command>${x}' for more information on a specific command."
+  p "Comming soon: the Docs website, and the link will be here."
+  #p "See '${txtGreen}${strong}sherpa${x}${txtGreen} help <command>${x}' for more information on a specific command."
   br
 
 }
@@ -67,10 +68,12 @@ while getopts ":hvc:Vq-:" opt; do
   h)
     # Display the help/usage text from above
     usage
+    exit 0
     ;;
   v)
     # -v short flag for version.
     printf "%s v%s\n" "Sh:erpa" "$(get_yaml_item "version" "${SDD}/Sherpa.yaml")"
+    exit 0
     ;;
   c)
     # Custom flag -c expecting a color name as argument,
@@ -96,11 +99,13 @@ while getopts ":hvc:Vq-:" opt; do
     # --help
     help)
       usage
+      exit 0
       ;;
     # --version
     version)
       printf "%s v%s\n" "$SCRIPT_NAME" "$VERSION"
       [[ -n "$REPO" ]] && printf "Repo: %s\n" "$REPO"
+      exit 0
       ;;
     # --verbose
     verbose)

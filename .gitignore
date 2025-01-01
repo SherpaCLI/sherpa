@@ -1,6 +1,5 @@
 # Ignore symlinks
-bin/*@
-
-# Ignore large files
-bin/pandoc
-
+bin/todo
+bin/dkr
+bin/fromSource
+bin/ignoreSymlinks
