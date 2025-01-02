@@ -64,7 +64,7 @@ if [[ "$1" == "install" ]]; then # Start Route
     h1 "Install a BashBox from Git"
     hr "+" "-"
     p "Usage: ${em}sherpa install foobar${x}"
-    p "   or: ${em}sherpa install -n='name' -t='bin' -u='url-to-repository'${x}"
+    p "   or: ${em}sherpa install -n \"name\" -t \"bin\" -u \"url-to-repository\" ${x}"
     br
     p "If part of the BashBoxRegistry, the name is enough."
     p "If not, a full url to the repository is expected, with following flags:"
@@ -123,8 +123,8 @@ if [[ "$1" == "install" ]]; then # Start Route
         # in ${SCD}/registers/tests.yaml
         # 2025-jan-21: /path/to/tests/dir
         add_yaml_item "name" "$bbName" "$binReg"
-        add_yaml_item "name.dir" "$bbDir" "$binReg"
-        add_yaml_item "name.exe" "$bbExe" "$binReg"
+        add_yaml_item "${bbName}.dir" "$bbDir" "$binReg"
+        add_yaml_item "${bbName}.exe" "$bbExe" "$binReg"
       fi # End Log
 
     fi # End installBin
@@ -157,7 +157,7 @@ if [[ "$1" == "install" ]]; then # Start Route
         # in ${SCD}/registers/tests.yaml
         # 2025-jan-21: /path/to/tests/dir
         add_yaml_item "name" "$bbName" "$libReg"
-        add_yaml_item "name.dir" "$bbDir" "$libReg"
+        add_yaml_item "${bbName}.dir" "$bbDir" "$libReg"
       fi # End Log
 
     fi #End installLib
