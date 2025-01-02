@@ -550,7 +550,7 @@ rm "$combinedScript"
 [[ "$verb" == "on" ]] && p "Making ${finalScript} it executable..."
 chmod +x "target/local/$finalScript"
 echo
-p "${btnSuccess} Done! ${x} Execute it with just ${txtGreen}${em}${finalScript}${x}"
+p "${btnSuccess} Done! ${x} Execute it with ${txtGreen}${em}${finalScript}${x}"
 br
 executable=$(get_yaml_item "package.executable" "Sherpa.yaml")
 symlink="${SDD}/bin/${executable}"
@@ -736,14 +736,25 @@ fi
 fi
 done
 fi # End Shdoc
-if [[ "$1" == "test" || "$1" == "t" ]]; then
+if [[
+"$1" == "test" || "$1" == "t" ]]; then
 if [[ ! -f Sherpa.yaml ]]; then
-p "Ooops. You are probably not in a Sherpa project root."
+p "Ooops. You
+are probably not in a Sherpa project root."
 exit 1
 fi
+[[ ! -d "${SCD}/registers" ]] && mkdir "${SCD}/registers"
+[[ ! -f "${SCD}/registers/" ]] && touch "${SCD}/registers/tests.yaml"
+key=$(date "+%s")
+value="$(pwd)/tests"
+file="${SCD}/registers/tests.yaml"
+add_yaml_item "$key" "$value" "$file"
 bashunit tests
 fi
 use "tent/symlink"
+[[ ! -d "${SCD}/registers" ]] && mkdir "${SCD}/registers"
+[[ ! -f "${SCD}/registers/bbrBin.yaml" ]] && touch "${SCD}/registers/bbrBin.yaml"
+[[ ! -f "${SCD}/registers/bbrLib.yaml" ]] && touch "${SCD}/registers/bbrLib.yaml"
 if [[ "$1" == "install" ]]; then # Start Route
 shift
 name=""
@@ -758,7 +769,7 @@ u) url=${OPTARG} ;;
 esac
 done
 [[ ! -d "${SCD}/bbr" ]] && mkdir "${SCD}/bbr"
-[[ ! -d "${SCD}/bbr/exe" ]] && mkdir "${SCD}/bbr/exe"
+[[ ! -d "${SCD}/bbr/bin" ]] && mkdir "${SCD}/bbr/bin"
 [[ ! -d "${SCD}/bbr/lib" ]] && mkdir "${SCD}/bbr/lib"
 if [[ $# == 0 ]]; then
 br
@@ -795,14 +806,29 @@ fi
 git clone "$url" "${SCD}/bbr/bin/${name}"
 cd "${SCD}/bbr/bin/${name}" || return
 sherpa build
+if sherpa build; then # Log
+bbName="${name}"
+bbDir="${SCD}/bbr/bin/${name}"
+bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
+binReg="${SCD}/registers/bbrBin.yaml"
+add_yaml_item "name" "$bbName" "$binReg"
+add_yaml_item "name.dir" "$bbDir" "$binReg"
+add_yaml_item "name.exe" "$bbExe" "$binReg"
+fi # End Log
 fi # End installBin
 if [[ $type = "lib" ]]; then # installLib
 git clone "$url" "${SCD}/bbr/lib/${name}"
+target="${SCD}/bbr/lib/${name}"
+symlink="${SCD}/lib/${name}"
 p "Creating a symlink into ${SCD}/lib"
-ln -s "${SCD}/bbr/lib/${name}" "${SCD}/lib/${name}"
+ln -s "${target}" "${symlink}"
+if ln -s "$target" "${symlink}"; then # Log
+bbName="${name}"
+bbDir="${SCD}/bbr/lib/${name}"
+libReg="${SCD}/registers/bbrLib.yaml"
+add_yaml_item "name" "$bbName" "$libReg"
+add_yaml_item "name.dir" "$bbDir" "$libReg"
+fi # End Log
 fi #End installLib
 fi # End ifUrl
-if [[ -n $2 ]]; then # from BashBoxRegistry
-p "Arg no2: ${2}"
-fi #End from BashBoxRegistry
 fi # End Route

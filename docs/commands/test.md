@@ -5,7 +5,8 @@ Running the tests from the ./tests dir with bashunit
 ## Overview
 
 To be used from the root of a Sherpa project,
-created with "sherpa new myProject".
+create
+d with "sherpa new myProject".
 
 It will:
 * Run the tests

@@ -120,7 +120,7 @@ if [[ "$1" == "build" || "$1" == "b" ]]; then
     [[ "$verb" == "on" ]] && p "Making ${finalScript} it executable..."
     chmod +x "target/local/$finalScript"
     echo
-    p "${btnSuccess} Done! ${x} Execute it with just ${txtGreen}${em}${finalScript}${x}"
+    p "${btnSuccess} Done! ${x} Execute it with ${txtGreen}${em}${finalScript}${x}"
     br
 
     #

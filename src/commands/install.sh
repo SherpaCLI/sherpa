@@ -24,6 +24,12 @@
 
 use "tent/symlink"
 
+# Create register if necessary
+# Local BashBox projects data will be stored in localBin.yaml
+[[ ! -d "${SCD}/registers" ]] && mkdir "${SCD}/registers"
+[[ ! -f "${SCD}/registers/bbrBin.yaml" ]] && touch "${SCD}/registers/bbrBin.yaml"
+[[ ! -f "${SCD}/registers/bbrLib.yaml" ]] && touch "${SCD}/registers/bbrLib.yaml"
+
 if [[ "$1" == "install" ]]; then # Start Route
 
   # Shift the first argument so we can process flags
@@ -48,7 +54,7 @@ if [[ "$1" == "install" ]]; then # Start Route
 
   # Check directories existance, and create if not
   [[ ! -d "${SCD}/bbr" ]] && mkdir "${SCD}/bbr"
-  [[ ! -d "${SCD}/bbr/exe" ]] && mkdir "${SCD}/bbr/exe"
+  [[ ! -d "${SCD}/bbr/bin" ]] && mkdir "${SCD}/bbr/bin"
   [[ ! -d "${SCD}/bbr/lib" ]] && mkdir "${SCD}/bbr/lib"
 
   # A second argument is needed
@@ -105,6 +111,22 @@ if [[ "$1" == "install" ]]; then # Start Route
       cd "${SCD}/bbr/bin/${name}" || return
       sherpa build
 
+      # If the Install was a success, log it
+      if sherpa build; then # Log
+        # Prepare data for the Register entry
+        bbName="${name}"
+        bbDir="${SCD}/bbr/bin/${name}"
+        bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
+        binReg="${SCD}/registers/bbrBin.yaml"
+
+        # Save a log into the tests registers
+        # in ${SCD}/registers/tests.yaml
+        # 2025-jan-21: /path/to/tests/dir
+        add_yaml_item "name" "$bbName" "$binReg"
+        add_yaml_item "name.dir" "$bbDir" "$binReg"
+        add_yaml_item "name.exe" "$bbExe" "$binReg"
+      fi # End Log
+
     fi # End installBin
 
     # Install a BB library
@@ -112,21 +134,39 @@ if [[ "$1" == "install" ]]; then # Start Route
     # - Symlink that dir to {SCD}/lib/bbName
     # - Use with: use "bbName/someFileInside"
     if [[ $type = "lib" ]]; then # installLib
+
       # TODO: Get the project name from Sherpa.yaml
       # Or use the $name value from the -n flag
       git clone "$url" "${SCD}/bbr/lib/${name}"
+
+      target="${SCD}/bbr/lib/${name}"
+      symlink="${SCD}/lib/${name}"
+
       # Creating a symlink
       p "Creating a symlink into ${SCD}/lib"
-      ln -s "${SCD}/bbr/lib/${name}" "${SCD}/lib/${name}"
+      ln -s "${target}" "${symlink}"
+
+      # If Install is a Success, log it
+      if ln -s "$target" "${symlink}"; then # Log
+        # Prepare data for the Register entry
+        bbName="${name}"
+        bbDir="${SCD}/bbr/lib/${name}"
+        libReg="${SCD}/registers/bbrLib.yaml"
+
+        # Save a log into the tests registers
+        # in ${SCD}/registers/tests.yaml
+        # 2025-jan-21: /path/to/tests/dir
+        add_yaml_item "name" "$bbName" "$libReg"
+        add_yaml_item "name.dir" "$bbDir" "$libReg"
+      fi # End Log
+
     fi #End installLib
 
   fi # End ifUrl
 
-  # The second argument is here
-  # let's do something with it.
-  if [[ -n $2 ]]; then # from BashBoxRegistry
-    # bashbox=$2
-    p "Arg no2: ${2}"
-  fi #End from BashBoxRegistry
+  # if [[ -n $2 ]]; then # from BashBoxRegistry
+  #   # bashbox=$2
+  #   p "Arg no2: ${2}"
+  # fi #End from BashBoxRegistry
 
 fi # End Route

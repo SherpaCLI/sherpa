@@ -8,7 +8,6 @@
 #    Constants   #
 # -------------- #
 
-readonly -a ARGS=("$@")          # All Position Args
 readonly SDD="$HOME/.sherpa"     # Sherpa Dot-Dir
 readonly SCD="$HOME/code/sherpa" # Sherpa Custom-Dir
 readonly EDITOR="vim"            # Default Editor
@@ -111,6 +110,11 @@ print_yaml_items() {
 
   yq eval "." "$file"
 }
+
+#
+# --- To be Deprecated ----
+# Check to see if it can be removed
+#
 
 #
 # Get the Location of the Script
