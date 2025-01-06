@@ -8,10 +8,10 @@
 #    Constants   #
 # -------------- #
 
-readonly SDD="$HOME/.sherpa"     # Sherpa Dot-Dir
-readonly SCD="$HOME/code/sherpa" # Sherpa Custom-Dir
-readonly EDITOR="vim"            # Default Editor
-readonly BIN="${SDD}/bin"        # Default Editor
+readonly SDD="$HOME/.sherpa" # Sherpa Dot-Dir
+readonly SCD="$HOME/sherpa"  # Sherpa Custom-Dir
+readonly EDITOR="vim"        # Default Editor
+readonly BIN="${SDD}/bin"    # Default Editor
 
 # TODO: More explicit documentation on set -eo pipefail
 set -eo pipefail

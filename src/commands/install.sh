@@ -85,6 +85,7 @@ if [[ "$1" == "install" ]]; then # Start Route
     br
 
     # TODO: Check if the url is a real one
+
     if [[ -z $type ]]; then # typeCheck
       p "If the -u flag is used, -t must be also set."
       p "The -t flag must be either -t='bin' or -t='lib'"
@@ -156,6 +157,11 @@ if [[ "$1" == "install" ]]; then # Start Route
       fi                                                     # End isInstalled
 
     fi # End installBin
+
+    #
+    #  This part will be the
+    #  sherpa add -u "prepoUrl"
+    #
 
     # Install a BB library
     # - Clone the repo in ${SCD}/bbr/lib/bbName

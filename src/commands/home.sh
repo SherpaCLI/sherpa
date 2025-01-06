@@ -32,10 +32,18 @@ if [[ "$#" == 0 ]]; then # Home Route
   text-center "$(date +%T)"
   br
   h2 " Local BashBoxes"
-  p "$(yq 'keys | join(", ")' "$localBoxes")"
+  if [[ -n "$localBoxes" ]]; then
+    p "$(yq 'keys | join(", ")' "$localBoxes")"
+  else
+    p "Create one with: sherpa create <myBashBox>"
+  fi  :
   br
   h2 " Installed Ones"
-  p "$(yq 'keys | join(", ")' "$bbrBin")"
+  if [[ -n "$bbrBin" ]]; then
+    p "$(yq 'keys | join(", ")' "$bbrBin")"
+  else
+    p "Install something."
+  fi
   br
   p "Create : sherpa new <boxName>"
   p "Details: sherpa box <boxName>"

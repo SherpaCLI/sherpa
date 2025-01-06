@@ -127,12 +127,25 @@ _install_cli_tools() {
 
 _clone_repo() {
   # Clone the repository into ~/.sherpa
+
+  # Backup existing .sherpa
+  if [[ -d "$HOME/.sherpa" ]]; then
+    # Rename it to .sherpa-bkp
+    # maybe add the date in the name, or something
+    mv "$HOME/.sherpa" "$HOME/.sherpa-bkp"
+  fi
+
   echo ""
-  echo "Cloning SherpaBasecamp/sherpa into ~/.sherpa"
+  echo "Setup SherpaDotDir to ~/.sherpa"
   echo ""
   git clone -q https://github.com/SherpaBasecamp/sherpa.git "${HOME}/.sherpa"
+  [[ -d "$HOME/.sherpa" ]] && echo "SDD Installed!"
 
-  [[ -d ~/.sherpa ]] && echo "Cloned!"
+  echo ""
+  echo "Setup SherpaCustomDir to ~/sherpa"
+  echo ""
+  cp -r "$HOME/.sherpa/templates/SCD" "$HOME/sherpa"
+  [[ -d "$HOME/.sherpa" ]] && echo "SCD Installed!"
 
 }
 
