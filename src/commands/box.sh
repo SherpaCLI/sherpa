@@ -29,8 +29,7 @@ if [[ "$1" == "box" ]]; then # Link
   fi
 
   # Merge Local and Installed BashBox registers
-  yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)'
-  "$localBoxes" "$bbrBin" >"$allPackages"
+  yq ea -i 'select(fileIndex == 0) * select(fileIndex == 1)' "$localBoxes" "$bbrBin" >"$allPackages"
 
   register="$allPackages"
 
