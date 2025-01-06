@@ -36,7 +36,7 @@ if [[ "$#" == 0 ]]; then # Home Route
     p "$(yq 'keys | join(", ")' "$localBoxes")"
   else
     p "Create one with: sherpa create <myBashBox>"
-  fi  :
+  fi
   br
   h2 " Installed Ones"
   if [[ -n "$bbrBin" ]]; then
