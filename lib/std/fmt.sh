@@ -17,8 +17,7 @@ u="\033[4m"        # Make it Underlined
 # Ending the formating sequence
 # Sort of </closing> tag.
 #
-end="\033[0m" # Make it </end>
-x="\033[0m"   # Make it </end> but shorter
+x="\033[0m" # Make it </end> but shorter
 
 #
 # Text Colors
@@ -100,10 +99,12 @@ esac
 # p "${btnSuccess} Yes! ${x} You did it."
 
 # shellcheck disable=SC2034
-btnSuccess="${bgGreen}${txtBlack}"
+export btnSuccess="${bgGreen}${txtBlack}"
+export btnWarning="${bgYellow}${txtBlack}"
+export btnDanger="${bgRed}${txtWhite}"
 
 # shellcheck disable=SC2034
-link="${u}${em}${txtBlue}"
+export link="${u}${em}${txtBlue}"
 
 # Just that. Some raw centered text.
 # It substracts the lenth of the text
@@ -255,8 +256,8 @@ flex-between() {
 # -------------------------
 
 #
-# Mofify values of Global variables
-# from a given file, for a given key.
+# Old stuff
+# ...will be removed.
 #
 modify_value() {
   local key="$1"

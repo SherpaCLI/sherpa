@@ -71,16 +71,39 @@ import() {
 
 }
 
+# --- Some Helpers --- #
+
+# confirm "Do you want to continue with this operation?"
+# echo "Continuing with the script..."
+confirm() {
+  br
+  read -r -p "$1 (y/n): " answer
+  if [[ ! $answer =~ ^[Yy]$ ]]; then
+    br
+    p "${btnWarning} Canceled ${x} Ok, got it."
+    br
+
+    exit 1
+  fi
+}
+
 # ----- YAML Manipulation ------- #
 
 # Move those functions to tent/yaml.sh
+
+add_yaml_parent() {
+  local key="$1"
+  local file="$2"
+
+  yq eval ".$key = {}" -i "$file"
+}
 
 add_yaml_item() {
   local key="$1"
   local value="$2"
   local file="$3"
 
-  yq -i ".$key = \"$value\"" "$file"
+  yq eval ".$key = \"$value\"" -i "$file"
 }
 
 get_yaml_item() {
@@ -109,6 +132,18 @@ print_yaml_items() {
   local file="$1"
 
   yq eval "." "$file"
+}
+
+#
+#
+#     Get the Package data
+#    --- little helper ---
+#
+#
+
+package() {
+  local key="$1"
+  get_yaml_item "package.${key}" "${ROOT}/Sherpa.yaml"
 }
 
 #

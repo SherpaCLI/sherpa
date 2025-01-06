@@ -16,7 +16,7 @@
 #      * Update meta-data about installed packages
 #
 #  Usage: sherpa install bashBoxName (if published to the Registry)
-#     or: sherpa install -u Https://url-of-the-repo (if not)
+#     or: sherpa install -n "name" -t "type" -u "repo url" (if not)
 #
 
 # For Variables declared in sourced files
@@ -63,7 +63,7 @@ if [[ "$1" == "install" ]]; then # Start Route
     br
     h1 "Install a BashBox from Git"
     hr "+" "-"
-    p "Usage: ${em}sherpa install foobar${x}"
+    p "Usage: ${em}sherpa install foobar${x} ...not yet implemented"
     p "   or: ${em}sherpa install -n \"name\" -t \"bin\" -u \"url-to-repository\" ${x}"
     br
     p "If part of the BashBoxRegistry, the name is enough."
@@ -101,31 +101,59 @@ if [[ "$1" == "install" ]]; then # Start Route
 
       if [[ -z "$name" ]]; then
         p "The name can't be empty"
-        p "use: sherpa install -n='name' -t='bin' -u='repoUrl'"
+        p "use: sherpa install -n \"name\" -t \"bin\" -u \"repoUrl\""
         exit 1
       fi
 
-      # TODO: Get the project name from Sherpa.yaml
-      # Or use the $name value from the -n flag
-      git clone "$url" "${SCD}/bbr/bin/${name}"
-      cd "${SCD}/bbr/bin/${name}" || return
-      sherpa build
+      # Check if an omonyme directory exists
+      # if not, clone the repo with that name
+      if [[ -d "${SCD}/bbr/bin/${name}" ]]; then # isDirAlready
+        br
+        p "Ooops! A ${name} directory already exists."
+        em "Pick another name."
+        br
+        exit 1
+      else
+        git clone "$url" "${SCD}/bbr/bin/${name}"
+        cd "${SCD}/bbr/bin/${name}" || return
+      fi # End isDirAlready
 
-      # If the Install was a success, log it
-      if sherpa build; then # Log
-        # Prepare data for the Register entry
-        bbName="${name}"
-        bbDir="${SCD}/bbr/bin/${name}"
-        bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
-        binReg="${SCD}/registers/bbrBin.yaml"
+      # Data from the Cloned repository & args
+      bbName="${name}"
+      bbRepo="${url}"
+      bbDir="${SCD}/bbr/bin/${name}"
+      bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
+      binReg="${SCD}/registers/bbrBin.yaml"
 
-        # Save a log into the tests registers
-        # in ${SCD}/registers/tests.yaml
-        # 2025-jan-21: /path/to/tests/dir
-        add_yaml_item "name" "$bbName" "$binReg"
-        add_yaml_item "${bbName}.dir" "$bbDir" "$binReg"
-        add_yaml_item "${bbName}.exe" "$bbExe" "$binReg"
-      fi # End Log
+      # Check if the repo is already installed
+      if yq "any(* | select(.repo == ${bbRepo}))" "${binReg}"; then # isInstalled
+        br
+        p "Oops. That BashBox is already installed."
+        br
+        exit 1
+      else                                      # actual Install
+        if [[ -L "${SDD}/bin/${bbExe}" ]]; then # isLinkAlready
+          p "Ooops. A bin/${bbExe} symlink exists."
+          p "Change the value in Sherpa.yaml, then build the Script."
+          exit 1
+        else
+          # sherpa build
+          # If the Install was a success, log it
+          if sherpa build; then # Log
+            # Prepare data for the Register entry
+
+            # Save a log into the tests registers
+            # in ${SCD}/registers/tests.yaml
+            # 2025-jan-21: /path/to/tests/dir
+            add_yaml_parent "${bbName}" "$binReg"
+            add_yaml_item "${bbName}.repo" "$bbRepo" "$binReg"
+            add_yaml_item "${bbName}.root" "$bbDir" "$binReg"
+            add_yaml_item "${bbName}.exe" "$bbExe" "$binReg"
+            add_yaml_item "${bbName}.type" "bbr" "$binReg"
+            add_yaml_item "${bbName}.origin" "git" "$binReg" # bbr / git / local
+          fi                                                 # End Log
+        fi                                                   # End isLinkAlready
+      fi                                                     # End isInstalled
 
     fi # End installBin
 
@@ -157,7 +185,8 @@ if [[ "$1" == "install" ]]; then # Start Route
         # in ${SCD}/registers/tests.yaml
         # 2025-jan-21: /path/to/tests/dir
         add_yaml_item "name" "$bbName" "$libReg"
-        add_yaml_item "${bbName}.dir" "$bbDir" "$libReg"
+        add_yaml_item "${bbName}.root" "$bbDir" "$libReg"
+        add_yaml_item "${bbName}.type" "bbr" "$libReg"
       fi # End Log
 
     fi #End installLib

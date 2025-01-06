@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-readonly -a ARGS=("$@")          # All Position Args
 readonly SDD="$HOME/.sherpa"     # Sherpa Dot-Dir
 readonly SCD="$HOME/code/sherpa" # Sherpa Custom-Dir
 readonly EDITOR="vim"            # Default Editor
@@ -39,11 +38,26 @@ echo "Opps. Something went wrong."
 exit 1
 fi
 }
+confirm() {
+br
+read -r -p "$1 (y/n): " answer
+if [[ ! $answer =~ ^[Yy]$ ]]; then
+br
+p "${btnWarning} Canceled ${x} Ok, got it."
+br
+exit 1
+fi
+}
+add_yaml_parent() {
+local key="$1"
+local file="$2"
+yq eval ".$key = {}" -i "$file"
+}
 add_yaml_item() {
 local key="$1"
 local value="$2"
 local file="$3"
-yq -i ".$key = \"$value\"" "$file"
+yq eval ".$key = \"$value\"" -i "$file"
 }
 get_yaml_item() {
 local key="$1"
@@ -64,6 +78,10 @@ yq -i "del(.$key)" "$file"
 print_yaml_items() {
 local file="$1"
 yq eval "." "$file"
+}
+package() {
+local key="$1"
+get_yaml_item "package.${key}" "${ROOT}/Sherpa.yaml"
 }
 add_config() {
 local key="$1"
@@ -98,8 +116,7 @@ strong="\033[1m"   # Make it Bold
 disabled="\033[2m" # Make it Dimmed
 em="\033[3m"       # Make it Italic
 u="\033[4m"        # Make it Underlined
-end="\033[0m" # Make it </end>
-x="\033[0m"   # Make it </end> but shorter
+x="\033[0m" # Make it </end> but shorter
 txtBlack="\033[30m"   # .text-red
 txtRed="\033[31m"     # .text-red
 txtGreen="\033[32m"   # .text-green
@@ -147,8 +164,10 @@ txtPrimary=${txtWhite}
 txtPrimary=""
 ;;
 esac
-btnSuccess="${bgGreen}${txtBlack}"
-link="${u}${em}${txtBlue}"
+export btnSuccess="${bgGreen}${txtBlack}"
+export btnWarning="${bgYellow}${txtBlack}"
+export btnDanger="${bgRed}${txtWhite}"
+export link="${u}${em}${txtBlue}"
 text-center() {
 local -i TERM_COLS
 local -i str_len
@@ -367,19 +386,24 @@ done
 shift $((OPTIND - 1))
 declare -g txtGreen
 declare -g x
+localBoxes="${SCD}/registers/localBoxes.yaml"
+bbrBin="${SCD}/registers/bbrBin.yaml"
 if [[ "$#" == 0 ]]; then # Home Route
 clear
 h1 " Welcome to the Basecamp 👋"
 hr "= + =" "-" # -----------= + =-----------
 text-center "$(date +%T)"
 br
+h2 " Local BashBoxes"
+p "$(yq 'keys | join(", ")' "$localBoxes")"
 br
-h2 "What that page might become?"
+h2 " Installed Ones"
+p "$(yq 'keys | join(", ")' "$bbrBin")"
 br
-p "Eventually some sort of dashboard or old-school portal."
-p "${txtGreen}Sh:erpa${x} version (local & remote), latest news & links"
+p "Create : sherpa new <boxName>"
+p "Details: sherpa box <boxName>"
 br
-p "Time will tel, but anyway ...nice to have you with us ;)"
+p "Docs: ${link}http://sherpa-basecamp.vercel.app${x}"
 br
 fi # End Home Route
 if [[ "$1" == "bashdoc" ]]; then # Bashdoc
@@ -473,26 +497,72 @@ br
 fi
 fi # end Options
 fi   # end Edit
-if [[ "$1" == "link" ]]; then # Link
-file_path="$(pwd)/target/debug/${PKG_NAME}.sh"
-target_dir="${SDD}/bin"
-link_name="${PKG_NAME}"
-link=${target_dir}/${link_name}
-if [[ $# == 1 ]]; then
-hello_link
-symlink_add "$file_path" "$target_dir" "$link_name"
-fi
-if [[ "$2" == "rm" ]]; then
-if [[ -n "$3" && -L "${target_dir}/$3" ]]; then
-symlink_remove "${target_dir}/$3"
-p "Link ${3} is removed."
-exit 0
+if [[ "$1" == "box" ]]; then # Link
+box_name="$2"
+allPackages="${SCD}/registers/allPackages.yaml"
+[[ ! -f "$allPackages" ]] && touch "$allPackages"
+localBoxes="${SCD}/registers/localBoxes.yaml"
+bbrBin="${SCD}/registers/bbrBin.yaml"
+yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
+"$localBoxes" "$bbrBin" >"$allPackages"
+register="$allPackages"
+root="$(get_yaml_item "${box_name}.root" "$register")"
+boxType="$(get_yaml_item "${box_name}.type" "$register")"
+exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
+repo="$(get_yaml_item "${box_name}.repo" "$register")"
+symLink="${SDD}/bin/${exe}"
+if [[ -n "$2" && "$#" == 2 ]]; then # BoxInfos
+if [[ "$root" != null ]]; then
+h1 " -= ${box_name} =-"
+hr "bash-box" "-"
+p "Some infos about it."
+if [[ -n "$boxType" && "$boxType" == "bbr" ]]; then
+br
+p "RootDir: ${em}${root}${x}"
+p "Executable: ${em}${exe}${x}"
+p "Repo: ${link}${repo}${x}"
+br
+p "Uninstall: ${em} sherpa uninstall ${box_name} ${x}"
 else
-p "Can't find the link ${3}."
+br
+p "RootDir: ${em}${root}${x}"
+p "Executable: ${em}${exe}${x}"
+br
+p "To delete it: ${em}sherpa box ${box_name} delete${x}"
+fi
+hr "-" "-"
+p "Other boxes: $(yq 'keys | join(", ")' "$register")"
+fi
+fi # End BoxInfos
+if [[ "$3" == "delete" ]]; then # Delete
+if [ "$#" -ne 3 ]; then
+echo "Usage: $0 <boxName> delete"
 exit 1
 fi
-symlink_remove "${target_dir}/$link_name"
+confirm "Do you really want to delete ${box_name}?"
+br
+p " Allright, pal, let's clean a little..."
+br
+[[ -L "$symLink" ]] && rm "$HOME/.sherpa/bin/${exe}"
+p "- Removed symlink: ${em}${exe}${x}"
+rm -rf "$root"
+p "- Removed directory: ${em}${root}${x}"
+remove_yaml_item "$box_name" "$localBoxes"
+p "- Removed register entry: ${em}${box_name}${x}"
+br
+p "${btnSuccess} Done! ${x} ${strong}${box_name}${x} just left the camp"
+fi # End Delete
+if [[ "$3" == "update" ]]; then # Update
+confirm "Do you really want to update ${box_name}?"
+if [[ "$boxType" == "bbr" ]]; then
+cd "${root}" || return
+git stash
+git pull
+git stash pop
+sherpa build
+p "${btnSuccess} Done! ${x} Latest version pulled."
 fi
+fi # End Update
 fi # End link
 if [[ "$1" == "links" ]]; then
 br
@@ -573,7 +643,7 @@ fi
 if [[ "$1" == "new" ]]; then # Start Route
 if [[ -z $2 ]]; then
 br
-p "${bgYellow}${txtBlack} Oops! ${x} Second argument needed."
+p "${btnDanger} Oops! ${x} Second argument needed."
 p "Usage: ${em}sherpa new foobar${x}"
 br
 p "It will be the directory's name, so no wild things."
@@ -581,6 +651,19 @@ exit 1
 fi
 if [[ -n $2 ]]; then # Creation
 project=$2
+regDir="${SCD}/registers"
+localBoxes="${regDir}/localBoxes.yaml"
+[[ ! -d "$regDir" ]] && mkdir "$regDir"
+[[ ! -f "$localBoxes" ]] && touch "$localBoxes"
+testRoot="$(get_yaml_item "${project}.root" "$localBoxes")"
+if [[ $testRoot != null ]]; then
+br
+p "${btnWarning} Ooops! ${x} A ${txtGreen}${project}${x} BashBox already exists."
+br
+p "It's root: ${em}${testRoot}${x}"
+br
+exit 1
+fi
 project_dir="$(pwd)/$project"
 template="binStarter"
 custom_template="${SCD}/templates/${template}"
@@ -589,11 +672,6 @@ if [[ -d ${custom_template} ]]; then
 template_files="${custom_template}"
 else
 template_files="${default_template}"
-fi
-if [[ -d "$project" ]]; then
-p "Oops! There is already a ${project} directory here."
-p "Pick a new name, for the new project ;)"
-exit 1
 fi
 mkdir "$project"
 if [[ ! -d "$project" ]]; then
@@ -623,12 +701,12 @@ br
 p "...more on ${link}https://github.com/AndiKod/sherpa${x}"
 br
 echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
+add_yaml_item "package.root" "$project_dir" "${project_dir}/Sherpa.yaml"
+add_yaml_item "package.type" "localBin" "${project_dir}/Sherpa.yaml"
 update_yaml_item "package.name" "$project" "${project_dir}/Sherpa.yaml"
 update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
-key="readonly PKG_NAME"
-new_value="${project}"
-filename="./src/_globals.sh"
-sed -i -E "s/^(${key}\s*=\s*)\"([^\"]*)\"/\1\"${new_value}\"/" "$filename"
+add_yaml_parent "$project" "$localBoxes"
+add_yaml_item "${project}.root" "$project_dir" "$localBoxes"
 fi #End Creation
 fi   # End Route
 if [[ "$1" == "init" ]]; then # Start Route
@@ -775,8 +853,8 @@ if [[ $# == 0 ]]; then
 br
 h1 "Install a BashBox from Git"
 hr "+" "-"
-p "Usage: ${em}sherpa install foobar${x}"
-p "   or: ${em}sherpa install -n='name' -t='bin' -u='url-to-repository'${x}"
+p "Usage: ${em}sherpa install foobar${x} ...not yet implemented"
+p "   or: ${em}sherpa install -n \"name\" -t \"bin\" -u \"url-to-repository\" ${x}"
 br
 p "If part of the BashBoxRegistry, the name is enough."
 p "If not, a full url to the repository is expected, with following flags:"
@@ -800,21 +878,45 @@ fi # End typeCheck
 if [[ $type = "bin" ]]; then # installBin
 if [[ -z "$name" ]]; then
 p "The name can't be empty"
-p "use: sherpa install -n='name' -t='bin' -u='repoUrl'"
+p "use: sherpa install -n \"name\" -t \"bin\" -u \"repoUrl\""
 exit 1
 fi
+if [[ -d "${SCD}/bbr/bin/${name}" ]]; then # isDirAlready
+br
+p "Ooops! A ${name} directory already exists."
+em "Pick another name."
+br
+exit 1
+else
 git clone "$url" "${SCD}/bbr/bin/${name}"
 cd "${SCD}/bbr/bin/${name}" || return
-sherpa build
-if sherpa build; then # Log
+fi # End isDirAlready
 bbName="${name}"
+bbRepo="${url}"
 bbDir="${SCD}/bbr/bin/${name}"
 bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
 binReg="${SCD}/registers/bbrBin.yaml"
-add_yaml_item "name" "$bbName" "$binReg"
-add_yaml_item "name.dir" "$bbDir" "$binReg"
-add_yaml_item "name.exe" "$bbExe" "$binReg"
-fi # End Log
+if yq "any(* | select(.repo == ${bbRepo}))" "${binReg}"; then # isInstalled
+br
+p "Oops. That BashBox is already installed."
+br
+exit 1
+else                                      # actual Install
+if [[ -L "${SDD}/bin/${bbExe}" ]]; then # isLinkAlready
+p "Ooops. A bin/${bbExe} symlink exists."
+p "Change the value in Sherpa.yaml, then build the Script."
+exit 1
+else
+if sherpa build; then # Log
+add_yaml_parent "${bbName}" "$binReg"
+add_yaml_item "${bbName}.repo" "$bbRepo" "$binReg"
+add_yaml_item "${bbName}.root" "$bbDir" "$binReg"
+add_yaml_item "${bbName}.exe" "$bbExe" "$binReg"
+add_yaml_item "${bbName}.type" "bbr" "$binReg"
+add_yaml_item "${bbName}.origin" "git" "$binReg" # bbr / git / local
+fi                                                 # End Log
+fi                                                   # End isLinkAlready
+fi                                                     # End isInstalled
 fi # End installBin
 if [[ $type = "lib" ]]; then # installLib
 git clone "$url" "${SCD}/bbr/lib/${name}"
@@ -827,8 +929,33 @@ bbName="${name}"
 bbDir="${SCD}/bbr/lib/${name}"
 libReg="${SCD}/registers/bbrLib.yaml"
 add_yaml_item "name" "$bbName" "$libReg"
-add_yaml_item "name.dir" "$bbDir" "$libReg"
+add_yaml_item "${bbName}.root" "$bbDir" "$libReg"
+add_yaml_item "${bbName}.type" "bbr" "$libReg"
 fi # End Log
 fi #End installLib
 fi # End ifUrl
 fi # End Route
+if [[ "$1" == "uninstall" ]]; then
+box_name="$2"
+register="${SCD}/registers/bbrBin.yaml"
+root="$(get_yaml_item "${box_name}.root" "$register")"
+boxType="$(get_yaml_item "${box_name}.type" "$register")"
+exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
+link="${SDD}/bin/${exe}"
+if [ "$#" -ne 2 ]; then
+echo "Usage: $0 uninstall <boxName>"
+exit 1
+fi
+confirm "Do you really want to uninstall ${box_name}?"
+br
+p " Allright, pal, let's clean a little..."
+br
+[[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
+p "- Removed symlink: ${em}${exe}${x}"
+rm -rf "$root"
+p "- Removed directory: ${em}${root}${x}"
+remove_yaml_item "$box_name" "$register"
+p "- Removed register entry: ${em}${box_name}${x}"
+br
+p "${btnSuccess} Done! ${x} ${strong}${box_name}${x} just left the camp"
+fi

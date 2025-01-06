@@ -14,6 +14,6 @@ It will:
 * Update meta-data about installed packages
 
 Usage: sherpa install bashBoxName (if published to the Registry)
-or: sherpa install -u Https://url-of-the-repo (if not)
+or: sherpa install -n "name" -t "type" -u "repo url" (if not)
 
 

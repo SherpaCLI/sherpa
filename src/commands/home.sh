@@ -15,6 +15,10 @@
 declare -g txtGreen
 declare -g x
 
+# Local BashBoxes
+localBoxes="${SCD}/registers/localBoxes.yaml"
+bbrBin="${SCD}/registers/bbrBin.yaml"
+
 # If the script is called with no arguments
 if [[ "$#" == 0 ]]; then # Home Route
 
@@ -24,13 +28,16 @@ if [[ "$#" == 0 ]]; then # Home Route
   hr "= + =" "-" # -----------= + =-----------
   text-center "$(date +%T)"
   br
+  h2 " Local BashBoxes"
+  p "$(yq 'keys | join(", ")' "$localBoxes")"
   br
-  h2 "What that page might become?"
+  h2 " Installed Ones"
+  p "$(yq 'keys | join(", ")' "$bbrBin")"
   br
-  p "Eventually some sort of dashboard or old-school portal."
-  p "${txtGreen}Sh:erpa${x} version (local & remote), latest news & links"
+  p "Create : sherpa new <boxName>"
+  p "Details: sherpa box <boxName>"
   br
-  p "Time will tel, but anyway ...nice to have you with us ;)"
+  p "Docs: ${link}http://sherpa-basecamp.vercel.app${x}"
   br
 
 fi # End Home Route

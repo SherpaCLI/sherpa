@@ -37,7 +37,7 @@ if [[ "$#" == 0 ]]; then
   bashdoc="${SDD}/src/commands/bashdoc.sh"
   compile="${SDD}/src/commands/compile.sh"
   edit="${SDD}/src/commands/edit.sh"
-  link="${SDD}/src/commands/link.sh"
+  box="${SDD}/src/commands/box.sh"
   links="${SDD}/src/commands/links.sh"
   new="${SDD}/src/commands/new.sh"
   init="${SDD}/src/commands/init.sh"
@@ -45,6 +45,7 @@ if [[ "$#" == 0 ]]; then
   doc="${SDD}/src/commands/doc.sh"
   test="${SDD}/src/commands/test.sh"
   install="${SDD}/src/commands/install.sh"
+  uninstall="${SDD}/src/commands/uninstall.sh"
 
   # Empty the file, prior to re-fill it
   : >$output_file
@@ -80,8 +81,8 @@ if [[ "$#" == 0 ]]; then
   echo "$edit" >>$output_file
   p "Added ${edit}"
 
-  echo "$link" >>$output_file
-  p "Added ${link}"
+  echo "$box" >>$output_file
+  p "Added ${box}"
 
   echo "$links" >>$output_file
   p "Added ${links}"
@@ -106,6 +107,9 @@ if [[ "$#" == 0 ]]; then
 
   echo "$install" >>$output_file
   p "Added ${install}"
+
+  echo "$uninstall" >>$output_file
+  p "Added ${uninstall}"
 
   p "...to ${output_file}"
 

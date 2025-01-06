@@ -27,7 +27,7 @@ if [[ "$1" == "new" ]]; then # Start Route
   # ...the project's name/folder.
   if [[ -z $2 ]]; then
     br
-    p "${bgYellow}${txtBlack} Oops! ${x} Second argument needed."
+    p "${btnDanger} Oops! ${x} Second argument needed."
     p "Usage: ${em}sherpa new foobar${x}"
     br
     p "It will be the directory's name, so no wild things."
@@ -39,7 +39,27 @@ if [[ "$1" == "new" ]]; then # Start Route
   # let's do something with it.
   if [[ -n $2 ]]; then # Creation
 
+    # TODO: Should be called package
     project=$2
+
+    # If necessary, create the loclBoxex.yaml resister
+    regDir="${SCD}/registers"
+    localBoxes="${regDir}/localBoxes.yaml"
+    [[ ! -d "$regDir" ]] && mkdir "$regDir"
+    [[ ! -f "$localBoxes" ]] && touch "$localBoxes"
+
+    # Check if a local BashBox named $project is already here
+    testRoot="$(get_yaml_item "${project}.root" "$localBoxes")"
+    if [[ $testRoot != null ]]; then
+      br
+      p "${btnWarning} Ooops! ${x} A ${txtGreen}${project}${x} BashBox already exists."
+      br
+      p "It's root: ${em}${testRoot}${x}"
+      br
+
+      exit 1
+    fi
+
     project_dir="$(pwd)/$project"
     template="binStarter"
     custom_template="${SCD}/templates/${template}"
@@ -51,13 +71,17 @@ if [[ "$1" == "new" ]]; then # Start Route
       template_files="${default_template}"
     fi
 
-    # Exit if an omonyme directory exists
-    if [[ -d "$project" ]]; then
-      p "Oops! There is already a ${project} directory here."
-      p "Pick a new name, for the new project ;)"
+    # --- We checked upon the localBoxes registrer
+    # # Exit if an omonyme directory exists
+    # if [[ -d "$project" ]]; then
+    #   br
+    #   p "${btnWarning} Oops! ${x} There is already a ${project} directory here."
+    #   br
+    #   em "Pick a new name, for the new project ;)"
+    #   br
 
-      exit 1
-    fi
+    #   exit 1
+    # fi
 
     # Create the project's root folder
     # and move inside for the follow-up
@@ -101,19 +125,28 @@ if [[ "$1" == "new" ]]; then # Start Route
 
     # TODO: This might become obsolete
     echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
+    # replaced by this:
+    # Adding the root dir at the BashBox yaml
+    add_yaml_item "package.root" "$project_dir" "${project_dir}/Sherpa.yaml"
+    add_yaml_item "package.type" "localBin" "${project_dir}/Sherpa.yaml"
 
     # Update the Sherpa.yaml file
     #+in the project root folder.
     update_yaml_item "package.name" "$project" "${project_dir}/Sherpa.yaml"
     update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
 
-    # --- Barbarisme à changer
-    key="readonly PKG_NAME"
-    new_value="${project}"
-    filename="./src/_globals.sh"
+    # Add the BashBox to the localBoxes register
+    add_yaml_parent "$project" "$localBoxes"
+    add_yaml_item "${project}.root" "$project_dir" "$localBoxes"
 
-    # Use sed to find the key and modify its value
-    sed -i -E "s/^(${key}\s*=\s*)\"([^\"]*)\"/\1\"${new_value}\"/" "$filename"
+    # # No more used
+    # # To be removed
+    # key="readonly PKG_NAME"
+    # new_value="${project}"
+    # filename="./src/_globals.sh"
+
+    # # Use sed to find the key and modify its value
+    # sed -i -E "s/^(${key}\s*=\s*)\"([^\"]*)\"/\1\"${new_value}\"/" "$filename"
 
     # --- fin barbarisme
 
