@@ -128,7 +128,7 @@ _install_cli_tools() {
 _clone_repo() {
   # Clone the repository into ~/.sherpa
   echo ""
-  echo "Cloning AndiKod/sherpa into ~/.sherpa"
+  echo "Cloning SherpaBasecamp/sherpa into ~/.sherpa"
   echo ""
   git clone -q https://github.com/SherpaBasecamp/sherpa.git "${HOME}/.sherpa"
 
