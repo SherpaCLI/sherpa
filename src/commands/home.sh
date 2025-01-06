@@ -15,6 +15,9 @@
 declare -g txtGreen
 declare -g x
 
+# Check if the SCD is installed, otherwise copy the template
+[[ ! -d "$SCD" ]] && cp -r "${SDD}/templates/SCD" "${SCD}"
+
 # Local BashBoxes
 localBoxes="${SCD}/registers/localBoxes.yaml"
 bbrBin="${SCD}/registers/bbrBin.yaml"
@@ -37,7 +40,7 @@ if [[ "$#" == 0 ]]; then # Home Route
   p "Create : sherpa new <boxName>"
   p "Details: sherpa box <boxName>"
   br
-  p "Docs: ${link}http://sherpa-basecamp.vercel.app${x}"
+  p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
   br
 
 fi # End Home Route
