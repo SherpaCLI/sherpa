@@ -22,9 +22,15 @@ if [[ "$1" == "box" ]]; then # Link
 
   localBoxes="${SCD}/registers/localBoxes.yaml"
   bbrBin="${SCD}/registers/bbrBin.yaml"
+
+  if [[ ! -f "$localBoxes" || ! -f "$bbrBin" ]]; then
+    echo "One or both input files do not exist."
+    exit 1
+  fi
+
   # Merge Local and Installed BashBox registers
-  yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
-    "$localBoxes" "$bbrBin" >"$allPackages"
+  yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)'
+  "$localBoxes" "$bbrBin" >"$allPackages"
 
   register="$allPackages"
 

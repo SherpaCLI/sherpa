@@ -42,7 +42,7 @@ if [[ "$1" == "new" ]]; then # Start Route
     # TODO: Should be called package
     project=$2
 
-    # If necessary, create the loclBoxex.yaml resister
+    # If necessary, create the localBoxex.yaml resister
     regDir="${SCD}/registers"
     localBoxes="${regDir}/localBoxes.yaml"
     [[ ! -d "$regDir" ]] && mkdir "$regDir"

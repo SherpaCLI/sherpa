@@ -26,9 +26,14 @@ use "tent/symlink"
 
 # Create register if necessary
 # Local BashBox projects data will be stored in localBin.yaml
-[[ ! -d "${SCD}/registers" ]] && mkdir "${SCD}/registers"
-[[ ! -f "${SCD}/registers/bbrBin.yaml" ]] && touch "${SCD}/registers/bbrBin.yaml"
-[[ ! -f "${SCD}/registers/bbrLib.yaml" ]] && touch "${SCD}/registers/bbrLib.yaml"
+# [[ ! -d "${SCD}/registers" ]] && mkdir "${SCD}/registers"
+# [[ ! -f "${SCD}/registers/bbrBin.yaml" ]] && touch "${SCD}/registers/bbrBin.yaml"
+# [[ ! -f "${SCD}/registers/bbrLib.yaml" ]] && touch "${SCD}/registers/bbrLib.yaml"
+
+# If necessary, create the localBoxex.yaml resister
+regDir="${SCD}/registers"
+bbrBin="${regDir}/bbrBin.yaml"
+bbrLib="${regDir}/bbrLib.yaml"
 
 if [[ "$1" == "install" ]]; then # Start Route
 
@@ -146,15 +151,15 @@ if [[ "$1" == "install" ]]; then # Start Route
             # Save a log into the tests registers
             # in ${SCD}/registers/tests.yaml
             # 2025-jan-21: /path/to/tests/dir
-            add_yaml_parent "${bbName}" "$binReg"
-            add_yaml_item "${bbName}.repo" "$bbRepo" "$binReg"
-            add_yaml_item "${bbName}.root" "$bbDir" "$binReg"
-            add_yaml_item "${bbName}.exe" "$bbExe" "$binReg"
-            add_yaml_item "${bbName}.type" "bbr" "$binReg"
-            add_yaml_item "${bbName}.origin" "git" "$binReg" # bbr / git / local
-          fi                                                 # End Log
-        fi                                                   # End isLinkAlready
-      fi                                                     # End isInstalled
+            add_yaml_parent "${bbName}" "${bbrBin}"
+            add_yaml_item "${bbName}.repo" "$bbRepo" "${bbrBin}"
+            add_yaml_item "${bbName}.root" "$bbDir" "${bbrBin}"
+            add_yaml_item "${bbName}.exe" "$bbExe" "${bbrBin}"
+            add_yaml_item "${bbName}.type" "bbr" "${bbrBin}"
+            add_yaml_item "${bbName}.origin" "git" "${bbrBin}" # bbr / git / local
+          fi                                                   # End Log
+        fi                                                     # End isLinkAlready
+      fi                                                       # End isInstalled
 
     fi # End installBin
 
