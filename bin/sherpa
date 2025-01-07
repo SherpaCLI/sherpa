@@ -833,7 +833,9 @@ shdoc <"$script" >"$DOCS_DIR/$base_name.md"
 echo -e "--- Some more, via BashDoc ---\n" >>"$DOCS_DIR/$base_name.md"
 bashdoc "$script" >>"$DOCS_DIR/$base_name.md"
 if [[ -f "$DOCS_DIR/$base_name.md" ]]; then
-log_normal "Done! $base_name.md"
+br
+p "${btnSuccess} Done! ${x} ... ${DOCS_DIR}/$base_name.md"
+br
 else
 p "Can't generate doc."
 exit 1

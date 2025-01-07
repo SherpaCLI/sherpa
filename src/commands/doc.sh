@@ -26,10 +26,6 @@ if [[ "$1" == "doc" || "$1" == "d" ]]; then # Shdoc
     exit 1
   fi
 
-  # TODO: Set a yaml field to pick shdoc or bashdoc
-  # check on it for the main body
-  # or add a flag -[f]ormat shdoc|bashdoc
-
   # Define directories
   SRC_DIR="src"
   DOCS_DIR="docs"
@@ -54,7 +50,9 @@ if [[ "$1" == "doc" || "$1" == "d" ]]; then # Shdoc
 
       # Log messages according to the command issue
       if [[ -f "$DOCS_DIR/$base_name.md" ]]; then
-        log_normal "Done! $base_name.md"
+        br
+        p "${btnSuccess} Done! ${x} ... ${DOCS_DIR}/$base_name.md"
+        br
       else
         p "Can't generate doc."
         exit 1

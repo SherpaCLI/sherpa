@@ -5,3 +5,4 @@ bin/fromSource
 bin/ignoreSymlinks
 bin/iS
 bin/shNews
+bin/goto
