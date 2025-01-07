@@ -38,15 +38,12 @@ if [[ "$#" == 0 ]]; then # Home Route
     p "Create one with: sherpa create <myBashBox>"
   fi
   br
-  h2 " Installed Ones"
   if [[ -n "$bbrBin" ]]; then
+    h2 " Installed Ones"
     p "$(yq 'keys | join(", ")' "$bbrBin")"
   else
     p "Install something."
   fi
-  br
-  p "Create : sherpa new <boxName>"
-  p "Details: sherpa box <boxName>"
   br
   p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
   br

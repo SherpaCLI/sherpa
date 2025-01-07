@@ -144,9 +144,9 @@ _clone_repo() {
   echo ""
   echo "Setup SherpaCustomDir to ~/sherpa"
   echo ""
-  [[ -d "{$HOME}/sherpa" ]] && mv "{$HOME}/sherpa" "{$HOME}/sherpa-bkp"
-  cp -r "{$HOME}/.sherpa/templates/SCD" "{$HOME}/sherpa"
-  [[ -d "{$HOME}/.sherpa" ]] && echo "SCD Installed!"
+  [[ -d "${HOME}/sherpa" ]] && mv "${HOME}/sherpa" "${HOME}/sherpa-bkp"
+  cp -r "${HOME}/.sherpa/templates/SCD" "${HOME}/sherpa"
+  [[ -d "${HOME}/.sherpa" ]] && echo "SCD Installed!"
 
 }
 
