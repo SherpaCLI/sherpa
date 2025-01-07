@@ -30,20 +30,34 @@ if [[ "$#" == 0 ]]; then # Home Route
   h1 " Welcome to the Basecamp 👋"
   hr "= + =" "-" # -----------= + =-----------
   text-center "$(date +%T)"
+
+  # Create an array of first-level directories
+  mapfile -t boxes < <(find "${SCD}/boxes" -maxdepth 1 -type d -not -path "${SCD}/boxes" -printf '%f\n')
+  # Remove the trailing slash from directory names
+  boxes=("${boxes[@]%/}")
+  # Loop through the array
   br
-  h2 " Local BashBoxes"
-  if [[ -n "$localBoxes" ]]; then
-    p "$(yq 'keys | join(", ")' "$localBoxes")"
-  else
-    p "Create one with: sherpa create <myBashBox>"
-  fi
+  h2 "Local BashBoxes & their executable name"
+  for box in "${boxes[@]}"; do
+    p "* ${txtBlue}$box${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/boxes/${box}/Sherpa.yaml")${x}"
+    # Add your desired actions here
+  done
+
+  # --------------------------
+
+  # Create an array of first-level directories
+  mapfile -t dirs < <(find "${SCD}/bbr/bin" -maxdepth 1 -type d -not -path "${SCD}/bbr/bin" -printf '%f\n')
+
+  # Remove the trailing slash from directory names
+  dirs=("${dirs[@]%/}")
+  # Loop through the array
   br
-  if [[ -n "$bbrBin" ]]; then
-    h2 " Installed Ones"
-    p "$(yq 'keys | join(", ")' "$bbrBin")"
-  else
-    p "Install something."
-  fi
+  h2 "Installed BashBoxes & their executable name"
+  for dir in "${dirs[@]}"; do
+    p "* ${txtBlue}$dir${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/bbr/bin/${dir}/Sherpa.yaml")${x}"
+    # Add your desired actions here
+  done
+
   br
   p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
   br

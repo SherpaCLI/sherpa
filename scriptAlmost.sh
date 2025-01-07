@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 readonly SDD="$HOME/.sherpa" # Sherpa Dot-Dir
 readonly SCD="$HOME/sherpa"  # Sherpa Custom-Dir
 readonly EDITOR="vim"        # Default Editor
@@ -394,19 +393,25 @@ clear
 h1 " Welcome to the Basecamp 👋"
 hr "= + =" "-" # -----------= + =-----------
 text-center "$(date +%T)"
-mapfile -t boxes < <(find "${SCD}/boxes" -maxdepth 1 -type d -not -path "${SCD}/boxes" -printf '%f\n')
-boxes=("${boxes[@]%/}")
 br
-h2 "Local BashBoxes & their executable name"
-for box in "${boxes[@]}"; do
-p "* ${txtBlue}$box${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/boxes/${box}/Sherpa.yaml")${x}"
-done
-mapfile -t dirs < <(find "${SCD}/bbr/bin" -maxdepth 1 -type d -not -path "${SCD}/bbr/bin" -printf '%f\n')
+h2 " Local BashBoxes"
+if [[ -n "$localBoxes" ]]; then
+p "$(yq 'keys | join(", ")' "$localBoxes")"
+else
+p "Create one with: sherpa create <myBashBox>"
+fi
+br
+if [[ -n "$bbrBin" ]]; then
+h2 " Installed Ones"
+p "$(yq 'keys | join(", ")' "$bbrBin")"
+else
+p "Install something."
+fi
+cd "${SCD}/bbr/bin" || exit 1
+dirs=(*/*)
 dirs=("${dirs[@]%/}")
-br
-h2 "Installed BashBoxes & their executable name"
 for dir in "${dirs[@]}"; do
-p "* ${txtBlue}$dir${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/bbr/bin/${dir}/Sherpa.yaml")${x}"
+p "* ${txtBlue}$dir${x}"
 done
 br
 p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
