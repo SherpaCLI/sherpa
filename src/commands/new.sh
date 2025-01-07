@@ -127,16 +127,6 @@ if [[ "$1" == "new" ]]; then # Start Route
     p "${btnSuccess} Done! ${x} Time to start climbing."
     p "ProjectDir is $project_dir"
     br
-    p "You can follow the trail with: ${em}cd ${project}${x}"
-    p "Then one of those signs:"
-    p "* sherpa run         # Build and Run your project"
-    p "* sherpa e bin       # Edit the main script content"
-    p "* sherpa e opt       # Edit the Flags & Options"
-    p "* sherpa e yaml      # Edit the Sherpa.yaml file"
-    p "* sherpa e basecamp  # Edit global data"
-    br
-    p "...more on ${link}https://github.com/AndiKod/sherpa${x}"
-    br
 
     # TODO: This might become obsolete
     echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"

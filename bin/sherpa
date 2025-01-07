@@ -396,11 +396,17 @@ hr "= + =" "-" # -----------= + =-----------
 text-center "$(date +%T)"
 mapfile -t boxes < <(find "${SCD}/boxes" -maxdepth 1 -type d -not -path "${SCD}/boxes" -printf '%f\n')
 boxes=("${boxes[@]%/}")
-br
 h2 "Local BashBoxes & their executable name"
+if [[ -z "${boxes[*]}" ]]; then
+br
+p "${btnWarning} Empty ${x} No BashBox created yet"
+p "Try: ${em}sherpa new hello${x}"
+br
+else
 for box in "${boxes[@]}"; do
 p "* ${txtBlue}$box${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/boxes/${box}/Sherpa.yaml")${x}"
 done
+fi
 mapfile -t dirs < <(find "${SCD}/bbr/bin" -maxdepth 1 -type d -not -path "${SCD}/bbr/bin" -printf '%f\n')
 dirs=("${dirs[@]%/}")
 br
@@ -409,7 +415,10 @@ for dir in "${dirs[@]}"; do
 p "* ${txtBlue}$dir${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/bbr/bin/${dir}/Sherpa.yaml")${x}"
 done
 br
+h3 "Join us, the coffee is still warm."
 p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
+p "Github: ${link}http://github.com/SherpaBasecamp${x}"
+p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
 br
 fi # End Home Route
 if [[ "$1" == "bashdoc" ]]; then # Bashdoc
