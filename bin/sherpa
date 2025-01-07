@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-readonly SDD="$HOME/.sherpa"     # Sherpa Dot-Dir
-readonly SCD="$HOME/code/sherpa" # Sherpa Custom-Dir
-readonly EDITOR="vim"            # Default Editor
-readonly BIN="${SDD}/bin"        # Default Editor
+readonly SDD="$HOME/.sherpa" # Sherpa Dot-Dir
+readonly SCD="$HOME/sherpa"  # Sherpa Custom-Dir
+readonly EDITOR="vim"        # Default Editor
+readonly BIN="${SDD}/bin"    # Default Editor
 set -eo pipefail
 use() {
 local file="$1" # ex std/fmt
@@ -386,6 +386,7 @@ done
 shift $((OPTIND - 1))
 declare -g txtGreen
 declare -g x
+[[ ! -d "$SCD" ]] && cp -r "${SDD}/templates/SCD" "${SCD}"
 localBoxes="${SCD}/registers/localBoxes.yaml"
 bbrBin="${SCD}/registers/bbrBin.yaml"
 if [[ "$#" == 0 ]]; then # Home Route
@@ -395,15 +396,20 @@ hr "= + =" "-" # -----------= + =-----------
 text-center "$(date +%T)"
 br
 h2 " Local BashBoxes"
+if [[ -n "$localBoxes" ]]; then
 p "$(yq 'keys | join(", ")' "$localBoxes")"
+else
+p "Create one with: sherpa create <myBashBox>"
+fi
 br
+if [[ -n "$bbrBin" ]]; then
 h2 " Installed Ones"
 p "$(yq 'keys | join(", ")' "$bbrBin")"
+else
+p "Install something."
+fi
 br
-p "Create : sherpa new <boxName>"
-p "Details: sherpa box <boxName>"
-br
-p "Docs: ${link}http://sherpa-basecamp.vercel.app${x}"
+p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
 br
 fi # End Home Route
 if [[ "$1" == "bashdoc" ]]; then # Bashdoc
@@ -503,8 +509,11 @@ allPackages="${SCD}/registers/allPackages.yaml"
 [[ ! -f "$allPackages" ]] && touch "$allPackages"
 localBoxes="${SCD}/registers/localBoxes.yaml"
 bbrBin="${SCD}/registers/bbrBin.yaml"
-yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
-"$localBoxes" "$bbrBin" >"$allPackages"
+if [[ ! -f "$localBoxes" || ! -f "$bbrBin" ]]; then
+echo "One or both input files do not exist."
+exit 1
+fi
+yq ea -i 'select(fileIndex == 0) * select(fileIndex == 1)' "$localBoxes" "$bbrBin" >"$allPackages"
 register="$allPackages"
 root="$(get_yaml_item "${box_name}.root" "$register")"
 boxType="$(get_yaml_item "${box_name}.type" "$register")"
@@ -563,6 +572,32 @@ sherpa build
 p "${btnSuccess} Done! ${x} Latest version pulled."
 fi
 fi # End Update
+fi # End link
+if [[ "$1" == "rmBox" ]]; then # Link
+boxName="$2"
+if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
+br
+p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
+br
+exit 1
+fi
+root="${SCD}/boxes/${boxName}"
+exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
+link="${SDD}/bin/${exe}"
+localBoxes="${SCD}/registers/localBoxes.yaml"
+confirm "Do you really want to delete ${boxName}?"
+br
+p " Allright, pal, let's clean a little..."
+br
+[[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
+p "- Removed symlink: ${em}${exe}${x}"
+rm -rf "$root"
+p "- Removed directory: ${em}${root}${x}"
+remove_yaml_item "$boxName" "$localBoxes"
+p "- Removed register entry: ${em}${boxName}${x}"
+br
+p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
+br
 fi # End link
 if [[ "$1" == "links" ]]; then
 br
@@ -644,27 +679,18 @@ if [[ "$1" == "new" ]]; then # Start Route
 if [[ -z $2 ]]; then
 br
 p "${btnDanger} Oops! ${x} Second argument needed."
-p "Usage: ${em}sherpa new foobar${x}"
+p "Usage: ${em}sherpa new [-t] <packageName>${x}"
 br
 p "It will be the directory's name, so no wild things."
 exit 1
 fi
-if [[ -n $2 ]]; then # Creation
+if [[ -n $1 ]]; then # Creation
 project=$2
 regDir="${SCD}/registers"
 localBoxes="${regDir}/localBoxes.yaml"
 [[ ! -d "$regDir" ]] && mkdir "$regDir"
 [[ ! -f "$localBoxes" ]] && touch "$localBoxes"
-testRoot="$(get_yaml_item "${project}.root" "$localBoxes")"
-if [[ $testRoot != null ]]; then
-br
-p "${btnWarning} Ooops! ${x} A ${txtGreen}${project}${x} BashBox already exists."
-br
-p "It's root: ${em}${testRoot}${x}"
-br
-exit 1
-fi
-project_dir="$(pwd)/$project"
+project_dir="${SCD}/boxes/$project"
 template="binStarter"
 custom_template="${SCD}/templates/${template}"
 default_template="${SDD}/templates/${template}"
@@ -673,6 +699,7 @@ template_files="${custom_template}"
 else
 template_files="${default_template}"
 fi
+cd "${SCD}/boxes" || return
 mkdir "$project"
 if [[ ! -d "$project" ]]; then
 p "Couldn't create the ${project} directory"
@@ -830,9 +857,9 @@ add_yaml_item "$key" "$value" "$file"
 bashunit tests
 fi
 use "tent/symlink"
-[[ ! -d "${SCD}/registers" ]] && mkdir "${SCD}/registers"
-[[ ! -f "${SCD}/registers/bbrBin.yaml" ]] && touch "${SCD}/registers/bbrBin.yaml"
-[[ ! -f "${SCD}/registers/bbrLib.yaml" ]] && touch "${SCD}/registers/bbrLib.yaml"
+regDir="${SCD}/registers"
+bbrBin="${regDir}/bbrBin.yaml"
+bbrLib="${regDir}/bbrLib.yaml"
 if [[ "$1" == "install" ]]; then # Start Route
 shift
 name=""
@@ -908,15 +935,15 @@ p "Change the value in Sherpa.yaml, then build the Script."
 exit 1
 else
 if sherpa build; then # Log
-add_yaml_parent "${bbName}" "$binReg"
-add_yaml_item "${bbName}.repo" "$bbRepo" "$binReg"
-add_yaml_item "${bbName}.root" "$bbDir" "$binReg"
-add_yaml_item "${bbName}.exe" "$bbExe" "$binReg"
-add_yaml_item "${bbName}.type" "bbr" "$binReg"
-add_yaml_item "${bbName}.origin" "git" "$binReg" # bbr / git / local
-fi                                                 # End Log
-fi                                                   # End isLinkAlready
-fi                                                     # End isInstalled
+add_yaml_parent "${bbName}" "${bbrBin}"
+add_yaml_item "${bbName}.repo" "$bbRepo" "${bbrBin}"
+add_yaml_item "${bbName}.root" "$bbDir" "${bbrBin}"
+add_yaml_item "${bbName}.exe" "$bbExe" "${bbrBin}"
+add_yaml_item "${bbName}.type" "bbr" "${bbrBin}"
+add_yaml_item "${bbName}.origin" "git" "${bbrBin}" # bbr / git / local
+fi                                                   # End Log
+fi                                                     # End isLinkAlready
+fi                                                       # End isInstalled
 fi # End installBin
 if [[ $type = "lib" ]]; then # installLib
 git clone "$url" "${SCD}/bbr/lib/${name}"

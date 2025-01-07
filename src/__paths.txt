@@ -7,6 +7,7 @@
 /home/andikod/.sherpa/src/commands/compile.sh
 /home/andikod/.sherpa/src/commands/edit.sh
 /home/andikod/.sherpa/src/commands/box.sh
+/home/andikod/.sherpa/src/commands/link.sh
 /home/andikod/.sherpa/src/commands/links.sh
 /home/andikod/.sherpa/src/commands/build.sh
 /home/andikod/.sherpa/src/commands/new.sh

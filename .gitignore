@@ -3,3 +3,5 @@ bin/todo
 bin/dkr
 bin/fromSource
 bin/ignoreSymlinks
+bin/iS
+bin/shNews

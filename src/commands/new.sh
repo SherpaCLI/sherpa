@@ -28,16 +28,29 @@ if [[ "$1" == "new" ]]; then # Start Route
   if [[ -z $2 ]]; then
     br
     p "${btnDanger} Oops! ${x} Second argument needed."
-    p "Usage: ${em}sherpa new foobar${x}"
+    p "Usage: ${em}sherpa new [-t] <packageName>${x}"
     br
     p "It will be the directory's name, so no wild things."
 
     exit 1
   fi
 
+  # # Shift the first argument so we can process flags
+  # shift
+
+  # # The default template
+  # template="binStarter"
+
+  # while getopts "t:" opt; do
+  #   case $opt in
+  #   t) template=${OPTARG} ;;
+  #   *) echo "Invalid flag" ;;
+  #   esac
+  # done
+
   # The second argument is here
   # let's do something with it.
-  if [[ -n $2 ]]; then # Creation
+  if [[ -n $1 ]]; then # Creation
 
     # TODO: Should be called package
     project=$2
@@ -48,20 +61,21 @@ if [[ "$1" == "new" ]]; then # Start Route
     [[ ! -d "$regDir" ]] && mkdir "$regDir"
     [[ ! -f "$localBoxes" ]] && touch "$localBoxes"
 
-    # Check if a local BashBox named $project is already here
-    testRoot="$(get_yaml_item "${project}.root" "$localBoxes")"
-    if [[ $testRoot != null ]]; then
-      br
-      p "${btnWarning} Ooops! ${x} A ${txtGreen}${project}${x} BashBox already exists."
-      br
-      p "It's root: ${em}${testRoot}${x}"
-      br
+    # # Check if a local BashBox named $project is already here
+    # testRoot="$(get_yaml_item "${project}.root" "$localBoxes")"
+    # if [[ $testRoot != null ]]; then
+    #   br
+    #   p "${btnWarning} Ooops! ${x} A ${txtGreen}${project}${x} BashBox already exists."
+    #   br
+    #   p "It's root: ${em}${testRoot}${x}"
+    #   br
 
-      exit 1
-    fi
+    #   exit 1
+    # fi
 
-    project_dir="$(pwd)/$project"
+    project_dir="${SCD}/boxes/$project"
     template="binStarter"
+
     custom_template="${SCD}/templates/${template}"
     default_template="${SDD}/templates/${template}"
 
@@ -85,6 +99,7 @@ if [[ "$1" == "new" ]]; then # Start Route
 
     # Create the project's root folder
     # and move inside for the follow-up
+    cd "${SCD}/boxes" || return
     mkdir "$project"
 
     # If the mkdir is a success, go inside

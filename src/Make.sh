@@ -38,6 +38,7 @@ if [[ "$#" == 0 ]]; then
   compile="${SDD}/src/commands/compile.sh"
   edit="${SDD}/src/commands/edit.sh"
   box="${SDD}/src/commands/box.sh"
+  link="${SDD}/src/commands/link.sh"
   links="${SDD}/src/commands/links.sh"
   new="${SDD}/src/commands/new.sh"
   init="${SDD}/src/commands/init.sh"
@@ -83,6 +84,9 @@ if [[ "$#" == 0 ]]; then
 
   echo "$box" >>$output_file
   p "Added ${box}"
+
+  echo "$link" >>$output_file
+  p "Added ${link}"
 
   echo "$links" >>$output_file
   p "Added ${links}"
