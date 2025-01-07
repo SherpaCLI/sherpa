@@ -17,11 +17,11 @@
 if [[ "$1" == "uninstall" ]]; then
 
   box_name="$2"
+
   register="${SCD}/registers/bbrBin.yaml"
 
   # Get the symlink name from the argument
-  root="$(get_yaml_item "${box_name}.root" "$register")"
-  boxType="$(get_yaml_item "${box_name}.type" "$register")"
+  root="${SCD}/bbr/bin/${box_name}"
   exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
   link="${SDD}/bin/${exe}"
 
