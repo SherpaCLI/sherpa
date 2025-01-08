@@ -6,11 +6,15 @@
 #    created with "sherpa new myProject".
 #
 #    It will:
-#      * Build the script with Make
+#      * Build the script
 #      * Execute the maing thing, no args
 #      * Have a beer
 #
-#  Usage: sherpa [r]un
+#  Usage: sherpa r, run
+#
+
+#
+# Not really the most usefull command.
 #
 
 if [[ "$1" == "run" || "$1" == "r" ]]; then
@@ -30,7 +34,7 @@ if [[ "$1" == "run" || "$1" == "r" ]]; then
   use2path
 
   # Combining files listed in ${sourceOrder}...
-  # Read the file paths into an array
+  # Read the file paths i xnto an array
   mapfile -t files <"$sourceOrder"
 
   # Concatenate the contents of each file into combinedScript
@@ -98,7 +102,7 @@ if [[ "$1" == "run" || "$1" == "r" ]]; then
     fi
 
   else
-    echo "Quelque chose à merdé!"
+    echo "${btnWarning} Oops! ${x} Something went wrong."
     exit 1
   fi
 fi

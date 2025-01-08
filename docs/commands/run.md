@@ -8,10 +8,10 @@ To be used from the root of a Sherpa project,
 created with "sherpa new myProject".
 
 It will:
-* Build the script with Make
+* Build the script
 * Execute the maing thing, no args
 * Have a beer
 
-Usage: sherpa [r]un
+Usage: sherpa r, run
 
 

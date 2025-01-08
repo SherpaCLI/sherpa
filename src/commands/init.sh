@@ -52,7 +52,7 @@ if [[ "$1" == "init" ]]; then # Start Route
     cp -r ~/.sherpa/templates/${template}/* .
 
     # Initialize an empty Git repo
-    git init
+    git init --quiet
 
     br
     p "${btnSuccess} Done! ${x} Time to start climbing."
@@ -77,12 +77,12 @@ if [[ "$1" == "init" ]]; then # Start Route
     update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
 
     # --- Barbarisme à changer
-    key="readonly PKG_NAME"
-    new_value="${project}"
-    filename="./src/_globals.sh"
+    #key="readonly PKG_NAME"
+    #new_value="${project}"
+    #filename="./src/_globals.sh"
 
     # Use sed to find the key and modify its value
-    sed -i -E "s/^(${key}\s*=\s*)\"([^\"]*)\"/\1\"${new_value}\"/" "$filename"
+    #sed -i -E "s/^(${key}\s*=\s*)\"([^\"]*)\"/\1\"${new_value}\"/" "$filename"
 
     # --- fin barbarisme
 

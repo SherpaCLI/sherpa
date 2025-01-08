@@ -1,13 +1,11 @@
-# Link
+# Box
 
-Was used to generate a symlink
+Commands related to some Box Management
 
 ## Overview
 
-Expected to become Obsolete, as the links are
-generate on creation via `sherpa new myscript`.
-
-The `make` command is used to "put together" the
-script _partials.sh files into an optimized output.
+- localBox: details about a local BashBox
+- rmBox : Removing a local BashBox
+- upBox : Updating a remote BashBox
 
 

@@ -1,7 +1,3 @@
-# --------------------------- #
-#  Install a BashBox command  #
-# --------------------------- #
-
 # @file Install
 # @brief Install a BeshBox from a remote repository
 # @description
@@ -15,9 +11,15 @@
 #      * If lib/ create symlink to ${SCD}/lib
 #      * Update meta-data about installed packages
 #
-#  Usage: sherpa install bashBoxName (if published to the Registry)
-#     or: sherpa install -n "name" -t "type" -u "repo url" (if not)
+#  Usage: sherpa install bashBoxName (still to be implemented)
+#     or: sherpa install -n "name" -t "type" -u "repo url"
 #
+#     -t can be either "bin" or "lib". Default to "bin"
+#
+
+# --------------------------- #
+#  Install a BashBox command  #
+# --------------------------- #
 
 # For Variables declared in sourced files
 # shellcheck disable=SC2154
@@ -42,11 +44,11 @@ if [[ "$1" == "install" ]]; then # Start Route
 
   # The name of the BashBox to be installed
   name=""
-  # Direct url to a BashBox repository
-  url=""
   # Optional way to enforece the type of BB
   # the type 'exe' are built, the 'lib' symlinked
   type=""
+  # Direct url to a BashBox repository
+  url=""
 
   while getopts "n:t:u:" opt; do
     case $opt in

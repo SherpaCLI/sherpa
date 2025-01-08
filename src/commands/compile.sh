@@ -17,6 +17,10 @@
 #  Usage: sherpa compile
 #
 
+#                     #
+#   --- Compile ---   #
+#                     #
+
 if [[ "$1" == "compile" ]]; then # Compile
 
   executable="$(get_yaml_item "package.executable" Sherpa.yaml)"
@@ -26,17 +30,19 @@ if [[ "$1" == "compile" ]]; then # Compile
 
   # Chack if the built script is here in target/local
   if [[ ! -f "target/local/${executable}" ]]; then # IsFile
-    p "Oops! Run first: ${em}sherpa make${x}"
+    p "${btnWarning} Oops! ${x} Run first: ${em}sherpa build${x}"
     exit 1
   else
+
+    # Create the directory if necessary
     [[ ! -d "target/bin" ]] && mkdir target/bin
 
     # Replace SheBang, as SHC does not support /usr/bin/env
-    # will look for other solution along the way...
+    # will look for other solution later, eventually...
     cp "$script" "$scriptCopy"
     sed -i 's|#!/usr/bin/env bash|#!/bin/bash|g' "$scriptCopy"
 
-    echo "Compiling to Binary via SHC..."
+    p "Compiling to Binary via SHC..."
     export CC=gcc
     shc -vrf "$scriptCopy" -o "target/bin/${executable}"
 

@@ -1,6 +1,6 @@
-# Shdoc
+# Doc
 
-Generating documentation with shdoc.
+Generating documentation with shdoc & bashdoc.
 
 ## Overview
 
@@ -13,6 +13,6 @@ It will:
 * Loop trough the .sh files in the src/ folder
 * Generates the files in the docs/ folder
 
-Usage: sherpa x [d]oc
+Usage: sherpa d, doc
 
 

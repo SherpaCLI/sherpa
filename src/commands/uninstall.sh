@@ -1,9 +1,6 @@
-# @file Link
-# @brief Was used to generate a symlink
+# @file Uninstall
+# @brief Delete a remode BashBox and things tied to it
 # @description
-#
-#    Expected to become Obsolete, as the links are
-#    generate on creation via `sherpa new myscript`.
 #
 #    The `make` command is used to "put together" the
 #    script _partials.sh files into an optimized output.
@@ -31,25 +28,26 @@ if [[ "$1" == "uninstall" ]]; then
     exit 1
   fi
 
-  # TODO: Check if suc a box exists
-  # and list exixting ones if not
+  #                   #
+  #  --- Output ----  #
+  #                   #
 
   confirm "Do you really want to uninstall ${box_name}?"
 
   br
-  p " Allright, pal, let's clean a little..."
+  h2 " Allright, pal, let's clean a little..."
   br
   # Delete Symlink
   [[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
-  p "- Removed symlink: ${em}${exe}${x}"
+  p "${txtGreen}-${x} Removed symlink: ${em}${exe}${x}"
 
   # Delete root direcory
   rm -rf "$root"
-  p "- Removed directory: ${em}${root}${x}"
+  p "${txtGreen}-${x} Removed directory: ${em}${root}${x}"
 
   # Delete register entry
   remove_yaml_item "$box_name" "$register"
-  p "- Removed register entry: ${em}${box_name}${x}"
+  p "${txtGreen}-${x} Removed register entry: ${em}${box_name}${x}"
   br
 
   p "${btnSuccess} Done! ${x} ${strong}${box_name}${x} just left the camp"

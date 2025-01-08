@@ -6,3 +6,5 @@ bin/ignoreSymlinks
 bin/iS
 bin/shNews
 bin/goto
+bin/foo
+bin/hello

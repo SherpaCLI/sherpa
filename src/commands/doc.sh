@@ -1,5 +1,5 @@
-# @file Shdoc
-# @brief Generating documentation with shdoc.
+# @file Doc
+# @brief Generating documentation with shdoc & bashdoc.
 # @description
 #
 #    To be used from the root of a Sherpa project,
@@ -11,18 +11,22 @@
 #      * Loop trough the .sh files in the src/ folder
 #      * Generates the files in the docs/ folder
 #
-#  Usage: sherpa x [d]oc
+#  Usage: sherpa d, doc
 #
 # @see [shdoc](https://github.com/reconquest/shdoc).
 
 #;
-# [doc:rt] Doc
+# Doc
 # Generates .md docs with both Shdoc & Bashdoc
 #"
 if [[ "$1" == "doc" || "$1" == "d" ]]; then # Shdoc
 
+  # A Sherpa.yaml file bust be present in the directory
+  # otherwise it's brobably not a BashBox directory
   if [[ ! -f Sherpa.yaml ]]; then
-    p "Opps. Probably not in a project root."
+    br
+    p "${btnWarning} Opps! ${x} Probably not in a project root."
+    br
     exit 1
   fi
 
@@ -54,11 +58,11 @@ if [[ "$1" == "doc" || "$1" == "d" ]]; then # Shdoc
         p "${btnSuccess} Done! ${x} ... ${DOCS_DIR}/$base_name.md"
         br
       else
-        p "Can't generate doc."
+        p "Can't generate Doc."
         exit 1
       fi
 
     fi
   done
 
-fi # End Shdoc
+fi # End Doc

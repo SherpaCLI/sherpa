@@ -19,26 +19,27 @@
 #      * Make it executable
 #      * Symlnk it to ~/.sherpa/bin for global availability
 #
-#  Usage: sherpa [b]uildo
+#  Usage: sherpa b, build
 #
 #
 # **Next: Flags to diferenciate build type**
 #
-# Usage: sherpa [b]uild -t lib
+# Usage: sherpa b -t "lib"
 #
-# - bin: binary file via SHC
-# - lib: no files combination
-# - exe: just the sh executable
+# - bin: Default. Creating an executable
+# - lib: Raw .sh files for fn() libraries
 #
 
 # Initialising flags variables
-# so that Shellcheck be Happy.
+# so that Shellcheck could be Happy.
 quiet="off"
 verb="off"
 
+#                     #
 # --- Let's Roll! --- #
+#                     #
 
-if [[ "$1" == "build" || "$1" == "b" ]]; then
+if [[ "$1" == "build" || "$1" == "b" ]]; then #build
 
   shebang="src/_header.sh"
   sourceOrder="src/__paths.txt"
@@ -47,9 +48,8 @@ if [[ "$1" == "build" || "$1" == "b" ]]; then
 
   # --- OptionFlags --- #
 
-  type="" # bin|lib|exe(executable .sh file)
-
-  while getopts "u:r:b:f:" opt; do
+  type="bin" # bin for an executable script OR lib for raw .sh
+  while getopts "t:" opt; do
     case $opt in
     t) type=$OPTARG ;;
     *) echo "Invalid flag" ;;
@@ -62,7 +62,7 @@ if [[ "$1" == "build" || "$1" == "b" ]]; then
   [[ ! -d target ]] && mkdir target
   [[ ! -d target/local ]] && mkdir target/local
 
-  [[ "$quiet" != "on" ]] && p "\nGenerating partials files paths..."
+  [[ "$quiet" != "on" ]] && h1 " Building..."
   [[ "$quiet" != "on" ]] && br
 
   # Call use2path script from .sherpa/bin
@@ -79,31 +79,27 @@ if [[ "$1" == "build" || "$1" == "b" ]]; then
   cat "${files[@]}" >"$combinedScript"
 
   if [[ -f "$combinedScript" ]]; then
-    echo
-    echo "Done. Combined into ${combinedScript}!"
-    echo
-
-    echo "Generating documentation from that file"
+    p "- Partials combined into ${combinedScript}"
+    p "- Generating documentation from that file"
     [[ ! -d docs ]] && mkdir docs
     shdoc <"$combinedScript" >"docs/${finalScript}.md"
     echo -e "--- Commands/Routes & nonFunctions ---\n" >>"docs/${finalScript}.md"
     # Additional parsing with bashdoc
     bashdoc "$combinedScript" >>"docs/${finalScript}.md"
     if [[ -f "docs/${finalScript}.md" ]]; then
-      p "Check docs/${finalScript}.md"
-      br
+      p "  Check docs/${finalScript}.md"
     fi
 
-    echo "- Removing comments and empty lines..."
+    p "- Removing comments and empty lines..."
     sed -i '/^\s*#/d; /^\s*$/d' "$combinedScript"
 
-    echo "- Removing trailing spaces..."
+    p "- Removing trailing spaces..."
     sed -i 's/[[:space:]]*$//' "$combinedScript"
 
-    echo "- Removing the leading spaces..."
+    p "- Removing the leading spaces..."
     sed -i 's/^[[:space:]]*//' "$combinedScript"
 
-    echo "- Adding the /usr/bin/env bash Shebang..."
+    p "- Adding the /usr/bin/env bash Shebang..."
     # [[ $# != 2 ]] && echo "Usage: sherpa Make scriptName"
 
     # Create dirs if necessary
@@ -152,7 +148,8 @@ if [[ "$1" == "build" || "$1" == "b" ]]; then
     fi
 
   else
-    echo "Quelque chose à merdé!"
+    p "${btnWarning} Oops! ${x} Something went wrong!"
     exit 1
   fi
-fi
+
+fi # End build

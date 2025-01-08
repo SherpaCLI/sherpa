@@ -1,127 +1,98 @@
-# @file Link
-# @brief Was used to generate a symlink
+# @file Box
+# @brief Commands related to some Box Management
 # @description
 #
-#    Expected to become Obsolete, as the links are
-#    generate on creation via `sherpa new myscript`.
-#
-#    The `make` command is used to "put together" the
-#    script _partials.sh files into an optimized output.
+#    - localBox: details about a local BashBox
+#    - rmBox : Removing a local BashBox
+#    - upBox : Updating a remote BashBox
 #
 
 # ------------------------ #
-#  Symlink to .sherpa/bin  #
+#  Local BashBox Infos     #
 # ------------------------ #
 
-if [[ "$1" == "box" ]]; then # Link
+if [[ "$1" == "localBox" ]]; then # localBox
 
-  box_name="$2"
+  # Like in ${SCD}/boxes/<boxName>
+  boxName="$2"
 
-  allPackages="${SCD}/registers/allPackages.yaml"
-  [[ ! -f "$allPackages" ]] && touch "$allPackages"
+  # Warning if Directory not found
+  if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
+    br
+    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
+    br
 
-  localBoxes="${SCD}/registers/localBoxes.yaml"
-  bbrBin="${SCD}/registers/bbrBin.yaml"
-
-  if [[ ! -f "$localBoxes" || ! -f "$bbrBin" ]]; then
-    echo "One or both input files do not exist."
     exit 1
   fi
 
-  # Merge Local and Installed BashBox registers
-  yq ea -i 'select(fileIndex == 0) * select(fileIndex == 1)' "$localBoxes" "$bbrBin" >"$allPackages"
+  # Data Variables
+  yaml="${SCD}/boxes/${boxName}/Sherpa.yaml"
+  exe="$(get_yaml_item "package.executable" "$yaml")"
 
-  register="$allPackages"
+  #
+  #   --- Output ---
+  #
 
-  # Get the symlink name from the argument
-  root="$(get_yaml_item "${box_name}.root" "$register")"
-  boxType="$(get_yaml_item "${box_name}.type" "$register")"
+  clear
+  h1 " ${boxName}"
+  hr "BashBox" "-"
+
+  # Meta data
+  # Add: description, author, licence, docs, repo
+  p "- Root: ${SCD}/boxes/${boxName}"
+  p "- Executable: ${em}${exe}${x}"
+  br
+  p "${txtDanger} Delete ${x} Usage: ${em}sherpa rmBox ${boxName}${x}"
+
+fi # End localBox
+
+# ------------------------ #
+#  Delete a local BashBox  #
+# ------------------------ #
+
+if [[ "$1" == "rmBox" ]]; then # rmBox
+
+  # Like in ${SCD}/boxes/<boxName>
+  boxName="$2"
+
+  # Warning if Directory not found
+  if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
+    br
+    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
+    br
+
+    exit 1
+  fi
+
+  # Data Variables
+  root="${SCD}/boxes/${boxName}"
   exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
-  repo="$(get_yaml_item "${box_name}.repo" "$register")"
-  symLink="${SDD}/bin/${exe}"
-
-  # Local Bashbox infos
-  if [[ -n "$2" && "$#" == 2 ]]; then # BoxInfos
-
-    if [[ "$root" != null ]]; then
-
-      h1 " -= ${box_name} =-"
-      hr "bash-box" "-"
-      p "Some infos about it."
-
-      if [[ -n "$boxType" && "$boxType" == "bbr" ]]; then
-        br
-        p "RootDir: ${em}${root}${x}"
-        p "Executable: ${em}${exe}${x}"
-        p "Repo: ${link}${repo}${x}"
-        br
-        p "Uninstall: ${em} sherpa uninstall ${box_name} ${x}"
-      else
-        br
-        p "RootDir: ${em}${root}${x}"
-        p "Executable: ${em}${exe}${x}"
-        br
-        p "To delete it: ${em}sherpa box ${box_name} delete${x}"
-      fi
-
-      hr "-" "-"
-      p "Other boxes: $(yq 'keys | join(", ")' "$register")"
-    fi
-  fi # End BoxInfos
+  link="${SDD}/bin/${exe}"
+  localBoxes="${SCD}/registers/localBoxes.yaml"
 
   #
-  #    Delete a local BashBox
+  #   --- Output ---
   #
 
-  if [[ "$3" == "delete" ]]; then # Delete
+  confirm "Do you really want to delete ${boxName}?"
+  br
+  h2 " Allright, pal, let's clean a little..."
+  br
 
-    # Check if an argument is provided
-    if [ "$#" -ne 3 ]; then
-      echo "Usage: $0 <boxName> delete"
-      exit 1
-    fi
+  # Delete Symlink
+  [[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
+  p "- Removed symlink: ${em}${exe}${x}"
 
-    # TODO: Check if suc a box exists
-    # and list exixting ones if not
+  # Delete root direcory
+  rm -rf "$root"
+  p "- Removed directory: ${em}${root}${x}"
 
-    confirm "Do you really want to delete ${box_name}?"
+  # Delete register entry
+  remove_yaml_item "$boxName" "$localBoxes"
+  p "- Removed register entry: ${em}${boxName}${x}"
+  br
 
-    br
-    p " Allright, pal, let's clean a little..."
-    br
-    # Delete Symlink
-    [[ -L "$symLink" ]] && rm "$HOME/.sherpa/bin/${exe}"
-    p "- Removed symlink: ${em}${exe}${x}"
-    # Delete root direcory
-    rm -rf "$root"
-    p "- Removed directory: ${em}${root}${x}"
-    # Delete register entry
-    remove_yaml_item "$box_name" "$localBoxes"
-    p "- Removed register entry: ${em}${box_name}${x}"
-    br
+  p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
+  br
 
-    p "${btnSuccess} Done! ${x} ${strong}${box_name}${x} just left the camp"
-
-  fi # End Delete
-
-  # Update a remote BashBox (Bin or Lib)
-  if [[ "$3" == "update" ]]; then # Update
-
-    confirm "Do you really want to update ${box_name}?"
-
-    if [[ "$boxType" == "bbr" ]]; then
-      # Move into the Root
-      cd "${root}" || return
-      # Stash / Pull / StashPop
-      git stash
-      git pull
-      git stash pop
-      # re Build
-      sherpa build
-
-      p "${btnSuccess} Done! ${x} Latest version pulled."
-    fi
-
-  fi # End Update
-
-fi # End link
+fi # End rmBox

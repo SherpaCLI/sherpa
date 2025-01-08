@@ -47,6 +47,7 @@ if [[ "$#" == 0 ]]; then
   test="${SDD}/src/commands/test.sh"
   install="${SDD}/src/commands/install.sh"
   uninstall="${SDD}/src/commands/uninstall.sh"
+  update="${SDD}/src/commands/update.sh"
 
   # Empty the file, prior to re-fill it
   : >$output_file
@@ -56,66 +57,69 @@ if [[ "$#" == 0 ]]; then
   #p "Added ${globals}"
 
   echo "$basecamp" >>$output_file
-  p "Added ${basecamp}"
+  # p "Added ${basecamp}"
 
   echo "$fmt" >>$output_file
-  p "Added ${fmt}"
+  # p "Added ${fmt}"
 
   echo "$symlink" >>$output_file
-  p "Added ${symlink}"
+  # p "Added ${symlink}"
 
   # Add the bottom standard paths
   echo "$options" >>$output_file
-  p "Added ${options}"
+  # p "Added ${options}"
 
   # --- Commands:
 
   echo "$home" >>$output_file
-  p "Added ${home}"
+  # p "Added ${home}"
 
   echo "$bashdoc" >>$output_file
-  p "Added ${bashdoc}"
+  # p "Added ${bashdoc}"
 
   echo "$compile" >>$output_file
-  p "Added ${compile}"
+  # p "Added ${compile}"
 
   echo "$edit" >>$output_file
-  p "Added ${edit}"
+  # p "Added ${edit}"
 
   echo "$box" >>$output_file
-  p "Added ${box}"
+  # p "Added ${box}"
 
   echo "$link" >>$output_file
-  p "Added ${link}"
+  # p "Added ${link}"
 
   echo "$links" >>$output_file
-  p "Added ${links}"
+  # p "Added ${links}"
 
   echo "$build" >>$output_file
-  p "Added ${build}"
+  # p "Added ${build}"
 
   echo "$new" >>$output_file
-  p "Added ${new}"
+  # p "Added ${new}"
 
   echo "$init" >>$output_file
-  p "Added ${init}"
+  # p "Added ${init}"
 
   echo "$run" >>$output_file
-  p "Added ${run}"
+  # p "Added ${run}"
 
   echo "$doc" >>$output_file
-  p "Added ${doc}"
+  # p "Added ${doc}"
 
   echo "$test" >>$output_file
-  p "Added ${test}"
+  # p "Added ${test}"
 
   echo "$install" >>$output_file
-  p "Added ${install}"
+  # p "Added ${install}"
 
   echo "$uninstall" >>$output_file
-  p "Added ${uninstall}"
+  # p "Added ${uninstall}"
 
-  p "...to ${output_file}"
+  echo "$update" >>$output_file
+  # p "Added ${update}"
+
+  # p "...to ${output_file}"
 
   # --- End Local use2paths ---------------------------------- #
 

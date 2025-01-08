@@ -21,15 +21,14 @@ It will:
 * Make it executable
 * Symlnk it to ~/.sherpa/bin for global availability
 
-Usage: sherpa [b]uildo
+Usage: sherpa b, build
 
 
 **Next: Flags to diferenciate build type**
 
-Usage: sherpa [b]uild -t lib
+Usage: sherpa b -t "lib"
 
-- bin: binary file via SHC
-- lib: no files combination
-- exe: just the sh executable
+- bin: Default. Creating an executable
+- lib: Raw .sh files for fn() libraries
 
 

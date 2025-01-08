@@ -13,7 +13,9 @@ It will:
 * If lib/ create symlink to ${SCD}/lib
 * Update meta-data about installed packages
 
-Usage: sherpa install bashBoxName (if published to the Registry)
-or: sherpa install -n "name" -t "type" -u "repo url" (if not)
+Usage: sherpa install bashBoxName (still to be implemented)
+or: sherpa install -n "name" -t "type" -u "repo url"
+
+-t can be either "bin" or "lib". Default to "bin"
 
 

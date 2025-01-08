@@ -1,29 +1,28 @@
-# ----------------------- #
-#  BashUnit Tests Command #
-# ----------------------- #
-
-# @file Tests
+# @file Test
 # @brief Running the tests from the ./tests dir with bashunit
 # @description
 #
 #    To be used from the root of a Sherpa project,
-#    create
-#    d with "sherpa new myProject".
+#    created with "sherpa new myProject".
 #
 #    It will:
 #      * Run the tests
 #      * Display the results
 #
-#  Usage: sherpa [t]est
+#  Usage: sherpa t, test
 #
 
-if [[ 
-  "$1" == "test" || "$1" == "t" ]]; then
+# ----------------------- #
+#  BashUnit Tests Command #
+# ----------------------- #
+
+if [[ "$1" == "test" || "$1" == "t" ]]; then # test
 
   # Check if we are in a Sh:erpa project folder
   if [[ ! -f Sherpa.yaml ]]; then
-    p "Ooops. You
-    are probably not in a Sherpa project root."
+    br
+    p "${btnWarning} Oops! ${x} Probably not in a Sherpa project root."
+    br
     exit 1
   fi
 
@@ -41,4 +40,4 @@ if [[
   add_yaml_item "$key" "$value" "$file"
 
   bashunit tests
-fi
+fi # End test

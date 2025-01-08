@@ -10,7 +10,7 @@
 #
 
 # ------------------------ #
-#  Symlink to .sherpa/bin  #
+#  Delete a local BashBox  #
 # ------------------------ #
 
 if [[ "$1" == "rmBox" ]]; then # Link
@@ -51,6 +51,46 @@ if [[ "$1" == "rmBox" ]]; then # Link
   br
 
   p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
+  br
+
+fi # End link
+
+# ------------------------ #
+#  Updating a BashBox      #
+# ------------------------ #
+
+if [[ "$1" == "upBox" ]]; then # Link
+
+  # Most of times, the same as the directory name
+  # in ${SCD}/boxes/<boxName>
+  boxName="$2"
+
+  # Check if exists
+  if [[ ! -d "${SCD}/bbr/bin/${boxName}" ]]; then
+    br
+    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in bbr/bin/"
+    br
+
+    exit 1
+  fi
+
+  confirm "Do you want to update ${boxName}?"
+
+  br
+  p " No problem, let's go..."
+  br
+
+  # Get inside
+  p "- Moving into the Directory"
+  cd "${SCD}/bbr/bin/${boxName}" || return
+
+  # Pull
+  p "- Pulling latest content"
+  git pull
+
+  # Re-Build
+  p "- Build again..."
+  sherpa build
   br
 
 fi # End link

@@ -121,7 +121,7 @@ if [[ "$1" == "new" ]]; then # Start Route
     cp -r ~/.sherpa/templates/${template}/* .
 
     # Initialize an empty Git repo
-    git init
+    git init --quiet
 
     br
     p "${btnSuccess} Done! ${x} Time to start climbing."
@@ -154,6 +154,10 @@ if [[ "$1" == "new" ]]; then # Start Route
     # sed -i -E "s/^(${key}\s*=\s*)\"([^\"]*)\"/\1\"${new_value}\"/" "$filename"
 
     # --- fin barbarisme
+
+    confirm "Do I build it already?"
+
+    sherpa build
 
   fi #End Creation
 fi   # End Route

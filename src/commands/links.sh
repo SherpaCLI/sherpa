@@ -17,7 +17,7 @@
 #"
 if [[ "$1" == "links" ]]; then
   br
-  p "Symlinks:"
+  h2 "Symlinks"
   # Display avaible links in ~/.sherpa/bin
   symlinks_list
   br
