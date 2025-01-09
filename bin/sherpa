@@ -420,6 +420,7 @@ h3 "Join us, the coffee is still warm."
 p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
 p "Github: ${link}http://github.com/SherpaBasecamp${x}"
 p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
+br
 fi # End Home Route
 if [[ "$1" == "bashdoc" ]]; then # Bashdoc
 if [[ ! -f Sherpa.yaml ]]; then
@@ -516,7 +517,7 @@ if [[ "$1" == "localBox" ]]; then # localBox
 boxName="$2"
 if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
 br
-p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
+p "There is no ${txtBlue}${boxName}${x} directory in boxes/"
 br
 exit 1
 fi
@@ -544,7 +545,7 @@ link="${SDD}/bin/${exe}"
 localBoxes="${SCD}/registers/localBoxes.yaml"
 confirm "Do you really want to delete ${boxName}?"
 br
-h2 " Allright, pal, let's clean a little..."
+h2 " Allright, let's clean a little..."
 br
 [[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
 p "- Removed symlink: ${em}${exe}${x}"
@@ -555,6 +556,7 @@ p "- Removed register entry: ${em}${boxName}${x}"
 br
 p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
 br
+exit 0
 fi # End rmBox
 if [[ "$1" == "rmBox" ]]; then # Link
 boxName="$2"
@@ -997,3 +999,25 @@ p "- Build again..."
 sherpa build
 br
 fi # End update
+if [[ "$1" == "self-update" ]]; then # SelfUpdate
+if [[ "$#" -gt 1 ]]; then
+br
+p "${btnWarning} Too many arguments! ${x} Usage: ${em}sherpa self-update${x}"
+br
+exit 1
+fi
+confirm "Do you want to update Sh:erpa?"
+br
+h2 " Ok, let's go..."
+br
+p "${txtGreen}-${x} Moving into the Directory"
+cd "${SDD}" || return
+p "${txtGreen}-${x} Pulling latest content"
+git fetch origin
+git reset --hard origin/master
+p "${txtGreen}-${x} Re-building the executable"
+cd src
+./Make.sh
+br
+p "${btnSuccess} Done! ${x}"
+fi # End SelfUpdate

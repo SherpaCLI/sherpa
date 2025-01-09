@@ -1,4 +1,4 @@
-# @file My Sh:erpa CLI Project
+# @file My Sh:erpa package
 
 # ------------------------------- #
 #   Options -flags with GetOpts   #

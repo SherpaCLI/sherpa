@@ -16,9 +16,10 @@ if [[ "$#" == 0 ]]; then
   combinedScript="scriptAlmost.sh"
   finalScript="sherpa"
 
-  p "Generating partials files paths..."
+  h1 " -= Building =-"
+  hr "Sh:erpa" "-"
   br
-
+  p "- Generating partials files paths..."
   # --- End Local use2paths ---------------------------------- #
 
   # Initialise variables from arguments
@@ -48,6 +49,7 @@ if [[ "$#" == 0 ]]; then
   install="${SDD}/src/commands/install.sh"
   uninstall="${SDD}/src/commands/uninstall.sh"
   update="${SDD}/src/commands/update.sh"
+  self_update="${SDD}/src/commands/self_update.sh"
 
   # Empty the file, prior to re-fill it
   : >$output_file
@@ -119,6 +121,9 @@ if [[ "$#" == 0 ]]; then
   echo "$update" >>$output_file
   # p "Added ${update}"
 
+  echo "$self_update" >>$output_file
+  # p "Added ${self_update}"
+
   # p "...to ${output_file}"
 
   # --- End Local use2paths ---------------------------------- #
@@ -127,20 +132,17 @@ if [[ "$#" == 0 ]]; then
   #  Generating Commands Docs
   #
 
-  p "Generating docs in ../docs/commands ..."
+  p "- Generating docs in ../docs/commands ..."
   for file in ${SDD}/src/commands/*; do
     filename=$(basename "$file")
     shdoc <"$file" >"${SDD}/docs/commands/${filename%.sh}.md"
   done
 
-  br
-  echo "Combining files listed in ${sourceOrder}..."
+  p "- Combining files listed in ${sourceOrder}..."
 
   cat $(<"$sourceOrder") >"$combinedScript"
   if [[ -f "$combinedScript" ]]; then
-    echo
-    echo "Done. Combined into ${combinedScript}!"
-    echo
+    p "- Combined them into ${combinedScript}!"
 
     # echo "Generating documentation from that file"
     # [[ ! -d docs ]] && mkdir docs
@@ -150,22 +152,22 @@ if [[ "$#" == 0 ]]; then
     #   br
     # fi
 
-    echo "- Removing comments and empty lines..."
+    p "- Removing comments and empty lines..."
     sed -i '/^\s*#/d; /^\s*$/d' "$combinedScript"
 
-    echo "- Removing trailing spaces..."
+    p "- Removing trailing spaces..."
     sed -i 's/[[:space:]]*$//' "$combinedScript"
 
-    echo "- Removing the leading spaces..."
+    p "- Removing the leading spaces..."
     sed -i 's/^[[:space:]]*//' "$combinedScript"
 
-    echo "- Adding the /usr/bin/env bash Shebang..."
+    p "- Adding the /usr/bin/env bash Shebang..."
     # [[ $# != 2 ]] && echo "Usage: sherpa Make scriptName"
     cat "$shebang" "$combinedScript" >"../bin/$finalScript"
     rm "$combinedScript"
 
     # echo "Check with GREP if # lines exist"
-    echo "- Making it executable..."
+    p "- Making it executable..."
     chmod +x "../bin/$finalScript"
     echo
     p "${btnSuccess} Done! ${x} Execute it with just ${txtGreen}${em}${finalScript}${x}"
@@ -188,7 +190,7 @@ if [[ "$#" == 0 ]]; then
     # fi
 
   else
-    echo "Quelque chose à merdé!"
+    echo "${btnWarning} Oops! ${x} Something went wrong."
     exit 1
   fi
 fi

@@ -79,5 +79,6 @@ if [[ "$#" == 0 ]]; then # Home Route
   p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
   p "Github: ${link}http://github.com/SherpaBasecamp${x}"
   p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
+  br
 
 fi # End Home Route

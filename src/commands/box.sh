@@ -19,7 +19,7 @@ if [[ "$1" == "localBox" ]]; then # localBox
   # Warning if Directory not found
   if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
     br
-    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
+    p "There is no ${txtBlue}${boxName}${x} directory in boxes/"
     br
 
     exit 1
@@ -76,7 +76,7 @@ if [[ "$1" == "rmBox" ]]; then # rmBox
 
   confirm "Do you really want to delete ${boxName}?"
   br
-  h2 " Allright, pal, let's clean a little..."
+  h2 " Allright, let's clean a little..."
   br
 
   # Delete Symlink
@@ -94,5 +94,7 @@ if [[ "$1" == "rmBox" ]]; then # rmBox
 
   p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
   br
+
+  exit 0
 
 fi # End rmBox
