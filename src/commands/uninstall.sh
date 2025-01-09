@@ -24,7 +24,7 @@ if [[ "$1" == "uninstall" ]]; then
 
   # Check if an argument is provided
   if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 uninstall <boxName>"
+    echo "Usage: sherpa uninstall <boxName>"
     exit 1
   fi
 
@@ -35,7 +35,7 @@ if [[ "$1" == "uninstall" ]]; then
   confirm "Do you really want to uninstall ${box_name}?"
 
   br
-  h2 " Allright, pal, let's clean a little..."
+  h2 " Allright, let's clean a little..."
   br
   # Delete Symlink
   [[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
@@ -51,5 +51,6 @@ if [[ "$1" == "uninstall" ]]; then
   br
 
   p "${btnSuccess} Done! ${x} ${strong}${box_name}${x} just left the camp"
+  br
 
 fi

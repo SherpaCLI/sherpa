@@ -17,3 +17,5 @@
 /home/andikod/.sherpa/src/commands/test.sh
 /home/andikod/.sherpa/src/commands/install.sh
 /home/andikod/.sherpa/src/commands/uninstall.sh
+/home/andikod/.sherpa/src/commands/update.sh
+/home/andikod/.sherpa/src/commands/self_update.sh

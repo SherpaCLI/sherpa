@@ -1,3 +1,6 @@
+<p align="center">
+    <img src="sherpa.png" alt="Sh:erpa Logo"/>
+</p>
 
 ### Let's make scripting, a Fun adventure.
 

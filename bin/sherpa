@@ -963,12 +963,12 @@ root="${SCD}/bbr/bin/${box_name}"
 exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
 link="${SDD}/bin/${exe}"
 if [ "$#" -ne 2 ]; then
-echo "Usage: $0 uninstall <boxName>"
+echo "Usage: sherpa uninstall <boxName>"
 exit 1
 fi
 confirm "Do you really want to uninstall ${box_name}?"
 br
-h2 " Allright, pal, let's clean a little..."
+h2 " Allright, let's clean a little..."
 br
 [[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
 p "${txtGreen}-${x} Removed symlink: ${em}${exe}${x}"
@@ -978,6 +978,7 @@ remove_yaml_item "$box_name" "$register"
 p "${txtGreen}-${x} Removed register entry: ${em}${box_name}${x}"
 br
 p "${btnSuccess} Done! ${x} ${strong}${box_name}${x} just left the camp"
+br
 fi
 if [[ "$1" == "update" ]]; then # update
 boxName="$2"
