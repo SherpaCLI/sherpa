@@ -39,6 +39,24 @@ if [[ "$1" == "self-update" ]]; then # SelfUpdate
   cd src
   ./Make.sh
   br
-  p "${btnSuccess} Done! ${x}"
+
+fi # End SelfUpdate
+
+# ---------------------------- #
+#  Running tests from .sherpa  #
+# ---------------------------- #
+
+if [[ "$1" == "self-test" ]]; then # SelfTest
+
+  # Check the arguments number
+  if [[ "$#" -gt 1 ]]; then
+    br
+    p "${btnWarning} Too many arguments! ${x} Usage: ${em}sherpa self-test${x}"
+    br
+    exit 1
+  fi
+
+  cd "$SDD"
+  sherpa test
 
 fi # End SelfUpdate

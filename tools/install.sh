@@ -12,6 +12,7 @@ source "../lib/std/fmt.sh"
 # TODO: !More safety checks per install
 
 _install_cli_tools() {
+
   # Check if webi is installed
   if ! command -v webi &>/dev/null; then
     p "${txtRed}${strong}x${x} Webi not found, installing..."
