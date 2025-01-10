@@ -46,7 +46,7 @@ if [[ "$1" == "install" ]]; then # Start Route
   name=""
   # Optional way to enforece the type of BB
   # the type 'exe' are built, the 'lib' symlinked
-  type=""
+  type="bin"
   # Direct url to a BashBox repository
   url=""
 

@@ -857,7 +857,7 @@ bbrLib="${regDir}/bbrLib.yaml"
 if [[ "$1" == "install" ]]; then # Start Route
 shift
 name=""
-type=""
+type="bin"
 url=""
 while getopts "n:t:u:" opt; do
 case $opt in
