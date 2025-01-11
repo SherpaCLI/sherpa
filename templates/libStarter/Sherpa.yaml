@@ -1,0 +1,4 @@
+package:
+  name: myLib
+  version: 0.1.0
+  repo: github.com/user/repo

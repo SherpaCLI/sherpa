@@ -10,10 +10,8 @@
 #  Usage: sherpa
 #
 
-# We declare the variables created elsewhere
-# so that Shellcheck won't yell at us when using them.
-declare -g txtGreen
-declare -g x
+# shellcheck disable=SC2034
+# shellcheck disable=SC2154
 
 # Check if the SCD is installed, otherwise copy the template
 [[ ! -d "$SCD" ]] && cp -r "${SDD}/templates/SCD" "${SCD}"
@@ -28,8 +26,28 @@ if [[ "$#" == 0 ]]; then # Home Route
   clear
 
   h1 " Welcome to the Basecamp 👋"
-  hr "= + =" "-" # -----------= + =-----------
-  text-center "$(date +%T)"
+  hr "Sh:erpa" "-"
+  text-center "$(date "+%b %d - %H:%M")"
+
+  #
+  #  --- LocalLibs List ---
+  #
+
+  # Create an array of first-level directories
+  mapfile -t libs < <(find "${SCD}/lib" -maxdepth 1 -type d -not -path "${SCD}/lib" -printf '%f\n')
+  # Remove the trailing slash from directory names
+  libs=("${libs[@]%/}")
+  # Loop through the array
+  h2 "Local Libraries from \$SCD/lib"
+  if [[ -z "${libs[*]}" ]]; then
+    p "${btnWarning} Empty ${x} Create one. Check the Docs."
+  else
+    for lib in "${libs[@]}"; do
+      # Print out each dir name
+      p "* ${txtBlue}$lib${x}"
+    done
+  fi
+  br
 
   #
   #  --- LocalBoxes List ---
@@ -45,10 +63,11 @@ if [[ "$#" == 0 ]]; then # Home Route
     p "${btnWarning} Empty ${x} Try: ${em}sherpa new hello${x}"
   else
     for box in "${boxes[@]}"; do
+      # Print each dir name: executable
       p "* ${txtBlue}$box${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/boxes/${box}/Sherpa.yaml")${x}"
-      # Add your desired actions here
     done
   fi
+  br
 
   #
   #  --- Installed Boxes ---
@@ -59,22 +78,21 @@ if [[ "$#" == 0 ]]; then # Home Route
   # Remove the trailing slash from directory names
   dirs=("${dirs[@]%/}")
   # Loop through the array
-  br
   h2 "Installed BashBoxes & their executable name"
   if [[ -z "${dirs[*]}" ]]; then
     p "${btnWarning} Empty ${x} Install something. See the Docs."
   else
     for dir in "${dirs[@]}"; do
+      # Print out each dir name
       p "* ${txtBlue}$dir${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/bbr/bin/${dir}/Sherpa.yaml")${x}"
-      # Add your desired actions here
     done
   fi
-
-  #
-  #  --- Sh:erpa Links ---
-  #
-
   br
+
+  # ---------------------- #
+  #      Sh:erpa Links     #
+  # ---------------------- #
+
   h3 "Join us, the coffee is still warm."
   p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
   p "Github: ${link}http://github.com/SherpaBasecamp${x}"
@@ -82,3 +100,14 @@ if [[ "$#" == 0 ]]; then # Home Route
   br
 
 fi # End Home Route
+
+# ----------- #
+#   Aliases   #
+# ----------- #
+
+# This route is too tiny to deserve a file
+
+if [[ "$1" == aliases ]]; then
+  # Edit aliases in Aliasman file
+  aliasman -e
+fi

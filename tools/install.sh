@@ -162,6 +162,16 @@ _add_to_path() {
   fi
 }
 
+_aliases() {
+  # Add basic aliases with Aliasman
+  aliasman sh sherpa
+  aliasman sdd cd "$HOME"/.sherpa
+  aliasman scd cd "$HOME"/sherpa
+  aliasman boxes cd "$HOME"/sherpa/boxes
+  aliasman libs cd "$HOME"/sherpa/libs
+}
+
 _install_cli_tools
 _clone_repo
 _add_to_path
+_aliases

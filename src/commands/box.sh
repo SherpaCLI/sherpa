@@ -98,3 +98,50 @@ if [[ "$1" == "rmBox" ]]; then # rmBox
   exit 0
 
 fi # End rmBox
+
+# ---------------------------- #
+#  Delete a local BashBox Lib  #
+# ---------------------------- #
+
+if [[ "$1" == "rmLib" ]]; then # rmLib
+
+  # Like in ${SCD}/boxes/<boxName>
+  libName="$2"
+
+  # Warning if Directory not found
+  if [[ ! -d "${SCD}/lib/${libName}" ]]; then
+    br
+    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
+    br
+
+    exit 1
+  fi
+
+  # Data Variables
+  root="${SCD}/lib/${libName}"
+  localLibs="${SCD}/registers/localLibs.yaml"
+
+  #
+  #   --- Output ---
+  #
+
+  confirm "Do you really want to delete ${libName}?"
+  br
+  h2 " Allright, let's clean a little..."
+  br
+
+  # Delete root direcory
+  rm -rf "$root"
+  p "- Removed directory: ${em}${root}${x}"
+
+  # Delete register entry
+  remove_yaml_item "$libName" "$localLibs"
+  p "- Removed register entry: ${em}${libName}${x}"
+  br
+
+  p "${btnSuccess} Done! ${x} ${strong}${libName}${x} just left the camp"
+  br
+
+  exit 0
+
+fi # End rmLib

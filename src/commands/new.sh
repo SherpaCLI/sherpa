@@ -28,31 +28,95 @@ if [[ "$1" == "new" ]]; then # Start Route
   if [[ -z $2 ]]; then
     br
     p "${btnDanger} Oops! ${x} Second argument needed."
-    p "Usage: ${em}sherpa new [-t] <packageName>${x}"
+    p "Usage: ${em}sherpa new <packageName> [lib]${x}"
     br
     p "It will be the directory's name, so no wild things."
 
     exit 1
   fi
 
-  # # Shift the first argument so we can process flags
-  # shift
+  # -------------------------------- #
+  #   Create a new Lib in $SCD/lib   #
+  # -------------------------------- #
 
-  # # The default template
-  # template="binStarter"
+  if [[ "$3" == "lib" ]]; then # Start newLib
 
-  # while getopts "t:" opt; do
-  #   case $opt in
-  #   t) template=${OPTARG} ;;
-  #   *) echo "Invalid flag" ;;
-  #   esac
-  # done
+    package=$2
 
-  # The second argument is here
-  # let's do something with it.
-  if [[ -n $1 ]]; then # Creation
+    # If necessary, create the localBoxex.yaml resister
+    regDir="${SCD}/registers"
+    localLibs="${regDir}/localLibs.yaml"
+    [[ ! -d "$regDir" ]] && mkdir "$regDir"
+    [[ ! -f "$localLibs" ]] && touch "$localLibs"
 
-    # TODO: Should be called package
+    package_dir="${SCD}/lib/$package"
+    libTemplate="libStarter"
+
+    custom_libTemplate="${SCD}/templates/${libTemplate}"
+    default_libTemplate="${SDD}/templates/${libTemplate}"
+
+    if [[ -d ${custom_libTemplate} ]]; then
+      template_files="${custom_libTemplate}"
+    else
+      template_files="${default_libTemplate}"
+    fi
+
+    #
+    #   Exit if the directory already exists
+    #
+    if [[ -d "$package_dir" ]]; then
+      br
+      p "${btnWarning} Oops! ${x} Directory ${txtYellow}lib/${package}${x} already exists."
+      br
+      p "${em}Pick another name ;)${x}"
+
+      exit 1
+    fi
+
+    # Creating the new package
+    cd "${SCD}/lib" || return
+    mkdir "$package"
+    cd "$package" || return
+
+    h1 " Welcome to the basecamp 👋 intrepid voyager."
+    hr "= + =" "-"
+    br
+    p "Unloading template's files from the truck..."
+
+    # Copy template's files
+    cp -r "${template_files}"/* .
+
+    # Initialize an empty Git repo
+    git init --quiet
+
+    br
+    p "${btnSuccess} Done! ${x} Time to start climbing."
+    p "ProjectDir is $package_dir"
+    br
+
+    # README
+    echo "# ${package}" >"${package_dir}/README.md"
+
+    # YAML Fiesta
+    add_yaml_item "package.type" "localLib" "${package_dir}/Sherpa.yaml"
+
+    # Update the Sherpa.yaml file
+    #+in the project root folder.
+    update_yaml_item "package.name" "$package" "${package_dir}/Sherpa.yaml"
+
+    # Add the BashBox to the localBoxes register
+    add_yaml_parent "$package" "$localLibs"
+    add_yaml_item "$package.name" "$package" "$localLibs"
+
+  fi # End newLib
+
+  # -------------------------------- #
+  #   Create a new Box in boxes/     #
+  # -------------------------------- #
+
+  if [[ -n $1 && $# == 2 ]]; then # newBox
+
+    # TODO: Should be called package, but it's ok.
     project=$2
 
     # If necessary, create the localBoxex.yaml resister
@@ -60,18 +124,6 @@ if [[ "$1" == "new" ]]; then # Start Route
     localBoxes="${regDir}/localBoxes.yaml"
     [[ ! -d "$regDir" ]] && mkdir "$regDir"
     [[ ! -f "$localBoxes" ]] && touch "$localBoxes"
-
-    # # Check if a local BashBox named $project is already here
-    # testRoot="$(get_yaml_item "${project}.root" "$localBoxes")"
-    # if [[ $testRoot != null ]]; then
-    #   br
-    #   p "${btnWarning} Ooops! ${x} A ${txtGreen}${project}${x} BashBox already exists."
-    #   br
-    #   p "It's root: ${em}${testRoot}${x}"
-    #   br
-
-    #   exit 1
-    # fi
 
     project_dir="${SCD}/boxes/$project"
     template="binStarter"
@@ -85,17 +137,7 @@ if [[ "$1" == "new" ]]; then # Start Route
       template_files="${default_template}"
     fi
 
-    # --- We checked upon the localBoxes registrer
-    # # Exit if an omonyme directory exists
-    # if [[ -d "$project" ]]; then
-    #   br
-    #   p "${btnWarning} Oops! ${x} There is already a ${project} directory here."
-    #   br
-    #   em "Pick a new name, for the new project ;)"
-    #   br
-
-    #   exit 1
-    # fi
+    # TODO: Check if boxes/$project already exists !
 
     # Create the project's root folder
     # and move inside for the follow-up
@@ -118,7 +160,7 @@ if [[ "$1" == "new" ]]; then # Start Route
     p "Unloading template's files from the truck..."
 
     # Copy template's files
-    cp -r ~/.sherpa/templates/${template}/* .
+    cp -r "${template_files}"/* .
 
     # Initialize an empty Git repo
     git init --quiet
@@ -144,20 +186,8 @@ if [[ "$1" == "new" ]]; then # Start Route
     add_yaml_parent "$project" "$localBoxes"
     add_yaml_item "${project}.root" "$project_dir" "$localBoxes"
 
-    # # No more used
-    # # To be removed
-    # key="readonly PKG_NAME"
-    # new_value="${project}"
-    # filename="./src/_globals.sh"
-
-    # # Use sed to find the key and modify its value
-    # sed -i -E "s/^(${key}\s*=\s*)\"([^\"]*)\"/\1\"${new_value}\"/" "$filename"
-
-    # --- fin barbarisme
-
-    confirm "Do I build it already?"
-
+    # Build it, bro!
     sherpa build
 
-  fi #End Creation
+  fi #End newBox
 fi   # End Route

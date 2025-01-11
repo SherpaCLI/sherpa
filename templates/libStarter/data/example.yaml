@@ -1,0 +1,18 @@
+# You can comment like this.
+
+# Flat
+key: value
+numeric: 42
+boolean: true
+
+# Assoc
+parent_key:
+  child01: some value
+  child02: some value
+
+# Arrays
+array: ["one", "two", "three"]
+also_array:
+  - one
+  - two
+  - three
