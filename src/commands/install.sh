@@ -132,6 +132,7 @@ if [[ "$1" == "install" ]]; then # Start Route
       bbDir="${SCD}/bbr/bin/${name}"
       bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
       binReg="${SCD}/registers/bbrBin.yaml"
+      globalsFile="${bbDir}/src/_globals.sh"
 
       # Check if the repo is already installed
       if yq "any(* | select(.repo == ${bbRepo}))" "${binReg}"; then # isInstalled
@@ -149,6 +150,10 @@ if [[ "$1" == "install" ]]; then # Start Route
           # If the Install was a success, log it
           if sherpa build; then # Log
             # Prepare data for the Register entry
+
+            # Update the ROOT value in src/_globals.sh
+            sed -i '/^readonly ROOT/d' "$globalsFile"
+            echo "readonly ROOT=\"$bbDir\"" >>"$globalsFile"
 
             # Save a log into the tests registers
             # in ${SCD}/registers/tests.yaml

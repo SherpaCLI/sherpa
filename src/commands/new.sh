@@ -170,7 +170,7 @@ if [[ "$1" == "new" ]]; then # Start Route
     p "ProjectDir is $project_dir"
     br
 
-    # TODO: This might become obsolete
+    # conf="${ROOT}/data/conf.yaml" to point at data files
     echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
     # replaced by this:
     # Adding the root dir at the BashBox yaml

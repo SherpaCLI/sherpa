@@ -51,6 +51,7 @@ bgLightGray="\033[37m" # .bg-lightGray
 #  Do it in your own scripts, see what's working.
 #
 icoLeaf="\ue22f"
+icoDocker="\uf21f"
 
 #
 # Setting the txtPrimary to the user defined color

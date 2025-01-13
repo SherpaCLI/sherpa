@@ -134,6 +134,7 @@ bgMagenta="\033[45m"   # .bg-magenta
 bgCyan="\033[46m"      # .bg-cyan
 bgLightGray="\033[37m" # .bg-lightGray
 icoLeaf="\ue22f"
+icoDocker="\uf21f"
 primaryColor="Green"
 case $primaryColor in
 Black)
@@ -992,6 +993,7 @@ bbRepo="${url}"
 bbDir="${SCD}/bbr/bin/${name}"
 bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
 binReg="${SCD}/registers/bbrBin.yaml"
+globalsFile="${bbDir}/src/_globals.sh"
 if yq "any(* | select(.repo == ${bbRepo}))" "${binReg}"; then # isInstalled
 br
 p "Oops. That BashBox is already installed."
@@ -1004,6 +1006,8 @@ p "Change the value in Sherpa.yaml, then build the Script."
 exit 1
 else
 if sherpa build; then # Log
+sed -i '/^readonly ROOT/d' "$globalsFile"
+echo "readonly ROOT=\"$bbDir\"" >>"$globalsFile"
 add_yaml_parent "${bbName}" "${bbrBin}"
 add_yaml_item "${bbName}.repo" "$bbRepo" "${bbrBin}"
 add_yaml_item "${bbName}.root" "$bbDir" "${bbrBin}"
