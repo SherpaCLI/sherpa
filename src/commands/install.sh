@@ -152,8 +152,10 @@ if [[ "$1" == "install" ]]; then # Start Route
             # Prepare data for the Register entry
 
             # Update the ROOT value in src/_globals.sh
+            # & Sherpa.yaml
             sed -i '/^readonly ROOT/d' "$globalsFile"
             echo "readonly ROOT=\"$bbDir\"" >>"$globalsFile"
+            update_yaml_item "package.root" "$bbDir" "${bbDir}/Sherpa.yaml"
 
             # Save a log into the tests registers
             # in ${SCD}/registers/tests.yaml

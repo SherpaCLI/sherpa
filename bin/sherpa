@@ -1008,6 +1008,7 @@ else
 if sherpa build; then # Log
 sed -i '/^readonly ROOT/d' "$globalsFile"
 echo "readonly ROOT=\"$bbDir\"" >>"$globalsFile"
+update_yaml_item "package.root" "$bbDir" "${bbDir}/Sherpa.yaml"
 add_yaml_parent "${bbName}" "${bbrBin}"
 add_yaml_item "${bbName}.repo" "$bbRepo" "${bbrBin}"
 add_yaml_item "${bbName}.root" "$bbDir" "${bbrBin}"
