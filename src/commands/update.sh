@@ -38,8 +38,10 @@ if [[ "$1" == "update" ]]; then # update
   cd "${SCD}/bbr/bin/${boxName}" || return
 
   # Pull
-  p "- Pulling latest content"
-  git pull
+  branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
+  p "- Reset from origin/${branch}"
+  git fetch origin "$branch"
+  git reset --hard origin/"$branch"
 
   # Re-Build
   p "- Build again..."
