@@ -50,6 +50,7 @@ if [[ "$#" == 0 ]]; then
   uninstall="${SDD}/src/commands/uninstall.sh"
   update="${SDD}/src/commands/update.sh"
   self_update="${SDD}/src/commands/self_update.sh"
+  watch="${SDD}/src/commands/watch.sh"
 
   # Empty the file, prior to re-fill it
   : >$output_file
@@ -123,6 +124,9 @@ if [[ "$#" == 0 ]]; then
 
   echo "$self_update" >>$output_file
   # p "Added ${self_update}"
+
+  echo "$watch" >>$output_file
+  # p "Added ${watch}"
 
   # p "...to ${output_file}"
 

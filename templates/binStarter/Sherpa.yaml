@@ -1,5 +1,6 @@
 package:
   name: foobar
+  description: "What that BashBox does"
   version: 0.1.0
   repo: github.com/user/repo
   executable: foobar

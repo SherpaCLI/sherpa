@@ -95,7 +95,7 @@ if [[ "$1" == "new" ]]; then # Start Route
     br
 
     # README
-    echo "# ${package}" >"${package_dir}/README.md"
+    sed -i "s/FooBar/BAZ/g" "${package_dir}/README.md"
 
     # YAML Fiesta
     add_yaml_item "package.type" "localLib" "${package_dir}/Sherpa.yaml"

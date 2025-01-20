@@ -146,49 +146,94 @@ package() {
   get_yaml_item "package.${key}" "${ROOT}/Sherpa.yaml"
 }
 
+
+#
+#
+#    CRUD the data from data/
+#     --- 11ty Inspired ---
+#
+#
+
+dataGet() {
+  local file="$1"
+  local key="$2"
+  get_yaml_item "${key}" "${ROOT}/data/${file}.yaml"
+}
+
+dataAdd() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  add_yaml_item "${key}" "${value}" "${ROOT}/data/${file}.yaml"
+}
+
+dataAddParent() {
+  local file="$1"
+  local key="$2"
+  get_yaml_parent "${key}" "${ROOT}/data/${file}.yaml"
+}
+
+dataUpdate() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  add_yaml_item "${key}" "${value}" "${ROOT}/data/${file}.yaml"
+}
+
+dataDelete() {
+  local file="$1"
+  local key="$2"
+  remove_yaml_item "${key}" "${ROOT}/data/${file}.yaml"
+}
+
+
+
+
 #
 # --- To be Deprecated ----
 # Check to see if it can be removed
 #
 
 #
-# Get the Location of the Script
+# Reliquats of early versions
+# before adding the generic
+# verb_yaml_item() functions
 #
 
-add_config() {
-  local key="$1"
-  local value="$2"
-  local file="$3"
+# add_config() {
+#   local key="$1"
+#   local value="$2"
+#   local file="$3"
 
-  yq -i ".$key = \"$value\"" "$file"
-}
-add_conf() {
-  local key="$1"
-  local value="$2"
+#   yq -i ".$key = \"$value\"" "$file"
+# }
+# add_conf() {
+#   local key="$1"
+#   local value="$2"
 
-  yq -i ".$key = \"$value\"" ./Sherpa.yaml
-}
+#   yq -i ".$key = \"$value\"" ./Sherpa.yaml
+# }
 
-get_config() {
-  local key="$1"
+# get_config() {
+#   local key="$1"
 
-  yq e ".$key" Sherpa.yaml
-}
+#   yq e ".$key" Sherpa.yaml
+# }
 
-get_conf() {
-  local key="$1"
-  local file="$2"
-  yq e ".$key" "$file"
-}
+# get_conf() {
+#   local key="$1"
+#   local file="$2"
+#   yq e ".$key" "$file"
+# }
 
-update_config() {
-  local key="$1"
-  local newValue="$2"
+# update_config() {
+#   local key="$1"
+#   local newValue="$2"
 
-  yq -i ".$key = \"$newValue\"" ./Sherpa.yaml
-}
+#   yq -i ".$key = \"$newValue\"" ./Sherpa.yaml
+# }
 
-remove_config() {
-  local key="$1"
-  yq -i "del(.$key)" ./Sherpa.yaml
-}
+# remove_config() {
+#   local key="$1"
+#   yq -i "del(.$key)" ./Sherpa.yaml
+# }

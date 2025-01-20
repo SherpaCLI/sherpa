@@ -27,7 +27,7 @@ function test_EDITOR_is_in_EditorsArray() {
 
 }
 
-function test_use_function() {
+function test_use_fn() {
 
   # Setup
   file="$SDD/lib/std/test.sh"
@@ -44,7 +44,7 @@ function test_use_function() {
 
 }
 
-function test_import_url_function() {
+function test_import_url_fn() {
 
   # Test
   import -u "https://codeberg.org/AndiKod/testo/raw/branch/master/greet.sh"
@@ -53,7 +53,7 @@ function test_import_url_function() {
 
 }
 
-function test_import_github_function() {
+function test_import_github_fn() {
 
   # Test
   import -r "AndiKod/testo" -f "greet.sh"

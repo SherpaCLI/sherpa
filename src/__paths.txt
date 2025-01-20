@@ -19,3 +19,4 @@
 /home/andikod/.sherpa/src/commands/uninstall.sh
 /home/andikod/.sherpa/src/commands/update.sh
 /home/andikod/.sherpa/src/commands/self_update.sh
+/home/andikod/.sherpa/src/commands/watch.sh

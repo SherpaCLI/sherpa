@@ -83,34 +83,32 @@ package() {
 local key="$1"
 get_yaml_item "package.${key}" "${ROOT}/Sherpa.yaml"
 }
-add_config() {
-local key="$1"
-local value="$2"
-local file="$3"
-yq -i ".$key = \"$value\"" "$file"
+dataGet() {
+local file="$1"
+local key="$2"
+get_yaml_item "${key}" "${ROOT}/data/${file}.yaml"
 }
-add_conf() {
-local key="$1"
-local value="$2"
-yq -i ".$key = \"$value\"" ./Sherpa.yaml
+dataAdd() {
+local file="$1"
+local key="$2"
+local value="$3"
+add_yaml_item "${key}" "${value}" "${ROOT}/data/${file}.yaml"
 }
-get_config() {
-local key="$1"
-yq e ".$key" Sherpa.yaml
+dataAddParent() {
+local file="$1"
+local key="$2"
+get_yaml_parent "${key}" "${ROOT}/data/${file}.yaml"
 }
-get_conf() {
-local key="$1"
-local file="$2"
-yq e ".$key" "$file"
+dataUpdate() {
+local file="$1"
+local key="$2"
+local value="$3"
+add_yaml_item "${key}" "${value}" "${ROOT}/data/${file}.yaml"
 }
-update_config() {
-local key="$1"
-local newValue="$2"
-yq -i ".$key = \"$newValue\"" ./Sherpa.yaml
-}
-remove_config() {
-local key="$1"
-yq -i "del(.$key)" ./Sherpa.yaml
+dataDelete() {
+local file="$1"
+local key="$2"
+remove_yaml_item "${key}" "${ROOT}/data/${file}.yaml"
 }
 strong="\033[1m"   # Make it Bold
 disabled="\033[2m" # Make it Dimmed
@@ -329,7 +327,9 @@ p "  ${txtGreen}new${x}         Create a new sherpa package"
 p "  ${txtGreen}run${x}, ${txtGreen}r${x}      Build and run a binary or script"
 p "  ${txtGreen}test${x}, ${txtGreen}t${x}     Run the tests from the tests dir"
 br
-p "Comming soon: the Docs website, and the link will be here."
+p "For the detailed list, read the docs or come talk:"
+p "Docs&News: ${link}https://sherpa-cli.netlify.app${x}"
+p "Discord:   ${link}https://discord.gg/66bQJ6cuXG${x}"
 br
 }
 while getopts ":hvc:Vq-:" opt; do
@@ -757,7 +757,7 @@ br
 p "${btnSuccess} Done! ${x} Time to start climbing."
 p "ProjectDir is $package_dir"
 br
-echo "# ${package}" >"${package_dir}/README.md"
+sed -i "s/FooBar/BAZ/g" "${package_dir}/README.md"
 add_yaml_item "package.type" "localLib" "${package_dir}/Sherpa.yaml"
 update_yaml_item "package.name" "$package" "${package_dir}/Sherpa.yaml"
 add_yaml_parent "$package" "$localLibs"
@@ -1074,8 +1074,10 @@ h2 " No problem, let's go..."
 br
 p "- Moving into the Directory"
 cd "${SCD}/bbr/bin/${boxName}" || return
-p "- Pulling latest content"
-git pull
+branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
+p "- Reset from origin/${branch}"
+git fetch origin "$branch"
+git reset --hard origin/"$branch"
 p "- Build again..."
 sherpa build
 br
@@ -1111,3 +1113,10 @@ fi
 cd "$SDD"
 sherpa test
 fi # End SelfUpdate
+if [[ "$1" == "watch" || "$1" == "w" ]]; then # watch
+if [[ ! -f "Sherpa.yaml" ]]; then
+p "${btnWarning} Oops! ${x} You are maybe not in a BashBox root."
+exit 1
+fi
+watchexec -c -w ./src -w ./data -- sherpa build
+fi # End watch

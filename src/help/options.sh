@@ -52,7 +52,9 @@ usage() {
   p "  ${txtGreen}run${x}, ${txtGreen}r${x}      Build and run a binary or script"
   p "  ${txtGreen}test${x}, ${txtGreen}t${x}     Run the tests from the tests dir"
   br
-  p "Comming soon: the Docs website, and the link will be here."
+  p "For the detailed list, read the docs or come talk:"
+  p "Docs&News: ${link}https://sherpa-cli.netlify.app${x}"
+  p "Discord:   ${link}https://discord.gg/66bQJ6cuXG${x}"
   #p "See '${txtGreen}${strong}sherpa${x}${txtGreen} help <command>${x}' for more information on a specific command."
   br
 
