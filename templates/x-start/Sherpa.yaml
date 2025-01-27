@@ -1,5 +1,0 @@
-package:
-  name: foobar
-  version: 0.1.0
-  repo: github.com/user/repo
-  executable: foobar

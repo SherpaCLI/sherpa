@@ -6,17 +6,34 @@
 
 # For the -c demo flag
 #+asigning a value via myScript -c purple
-color="" # String
+# color="" # String
 
 # Function to display help text
 usage() {
-  echo "Usage: $0 [-h] [-v] [-V] [-q] [-c] <command>"
-  echo "Options:"
-  echo "  -h | --help       Display the usage message"
-  echo "  -v | --version    Display script Version."
-  echo "  -c                Custom color via -c color."
-  echo "  -V | --verbose    Enable Verbose mode."
-  echo "  -q | --quiet      Continue force execution."
+
+  h1 "$(package "name")"
+  hr "help" "-"
+  if [[ -n "$(package "description")" ]]; then
+    p "$(package "description")"
+  fi
+  br
+  h2 "Usage"
+  p "${em}$(package "executable") [option] <command> [argument]${x}"
+  h2 "Options"
+  p "  -h | --help       Display the usage message"
+  p "  -v | --version    Display script Version."
+  #p  "  -c                Custom color via -c color."
+  p "  -V | --verbose    Enable Verbose mode, if available."
+  p "  -q | --quiet      Enable Quiet mode, if available."
+  br
+  #h2 "Commands"
+  #p " * command1:  Doing this"
+  #p " * command2:  Doing that"
+  #br
+  if [[ -n "$(package "repo")" ]]; then
+    p "Repo: ${link}$(package "repo")${x}"
+  fi
+
 }
 
 # Using getopts for the portability
@@ -33,8 +50,8 @@ while getopts ":hvc:Vq-:" opt; do
     ;;
   v)
     # -v short flag for version.
-    printf "%s v%s\n" "$(get_conf "name")" "$VERSION"
-    [[ -n "$REPO" ]] && printf "Repo: %s\n" "$REPO"
+    printf "%s v%s\n" "$(package "name")" "$(package "version")"
+    [[ -n "$(package "repo")" ]] && printf "Repo: %s\n" "$(package "repo")"
     exit 0
     ;;
   c)
@@ -68,8 +85,8 @@ while getopts ":hvc:Vq-:" opt; do
       ;;
     # --version
     version)
-      printf "%s v%s\n" "$SCRIPT_NAME" "$VERSION"
-      [[ -n "$REPO" ]] && printf "Repo: %s\n" "$REPO"
+      printf "%s v%s\n" "$(package "name")" "$(package "version")"
+      [[ -n "$(package "repo")" ]] && printf "Repo: %s\n" "$(package "repo")"
       exit 0
       ;;
     # --verbose

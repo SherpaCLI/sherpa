@@ -13,8 +13,9 @@ readonly SCD="$HOME/sherpa"  # Sherpa Custom-Dir
 readonly EDITOR="vim"        # Default Editor
 readonly BIN="${SDD}/bin"    # Default Editor
 
-# TODO: More explicit documentation on set -eo pipefail
-set -eo pipefail
+set -e  # Exit if a command ends with a non-zero status
+set -u  # Threats unset variables as errors
+set -o pipefail  # Hunt non-zero exits inside pipelines
 
 # ------------------- #
 #      Functions      #
@@ -133,6 +134,16 @@ print_yaml_items() {
 
   yq eval "." "$file"
 }
+
+
+#
+#       Get the Env Data
+#
+env() {
+  local key="$1"
+  get_yaml_item "${key}" "${SCD}/env.yaml"
+}
+
 
 #
 #

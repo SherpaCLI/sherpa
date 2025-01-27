@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
 
-# All about files and folders manipulation
-
-hello_link() {
-  echo
-  echo "Hello from tent/symlink.sh"
-  echo
-}
-
 #
 # --- Symlinks ---
 #
@@ -17,9 +9,9 @@ _is_command() {
   local link_name=$1
 
   # Check if the name is already a command
-  if command -v "$link_name" &> /dev/null; then
-      echo "Error: A command with the name '$link_name' already exists."
-      exit 1
+  if command -v "$link_name" &>/dev/null; then
+    echo "Error: A command with the name '$link_name' already exists."
+    exit 1
   fi
 }
 
@@ -30,8 +22,8 @@ _sl_exists() {
 
   # Check if a symlink already exists
   if [ -L "$target_dir/$link_name" ]; then
-      echo "Error: A symlink named '$link_name' already exists in $target_dir."
-      exit 1
+    echo "Error: A symlink named '$link_name' already exists in $target_dir."
+    exit 1
   fi
 
 }
@@ -65,10 +57,10 @@ symlink_add() {
   _sl_create "$file_path" "$target_dir" "$link_name"
 
   if [[ $? == 0 ]]; then
-      p "Symlink created successfully."
+    p "Symlink created successfully."
   else
-      p "Error creating symlink."
-      exit 1
+    p "Error creating symlink."
+    exit 1
   fi
 }
 
@@ -83,12 +75,11 @@ symlink_remove() {
 }
 
 symlinks_list() {
-    local dir="${1:-$HOME/.sherpa/bin}"
+  local dir="${1:-$HOME/.sherpa/bin}"
 
-    while IFS= read -r -d '' file; do
-        if [ -L "$file" ]; then
-            echo "$(basename "$file") -> $(readlink -f "$file")"
-        fi
-    done < <(find "$dir" -type l -print0)
+  while IFS= read -r -d '' file; do
+    if [ -L "$file" ]; then
+      echo "$(basename "$file") -> $(readlink -f "$file")"
+    fi
+  done < <(find "$dir" -type l -print0)
 }
-
