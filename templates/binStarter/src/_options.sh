@@ -6,23 +6,42 @@
 
 # For the -c demo flag
 #+asigning a value via myScript -c purple
-color="" # String
+#color="" # String
 
 # Function to display help text
 usage() {
-  echo "Usage: $0 [-h] [-v] [-V] [-q] [-c] <command>"
-  echo "Options:"
-  echo "  -h | --help       Display the usage message"
-  echo "  -v | --version    Display script Version."
-  echo "  -c                Custom color via -c color."
-  echo "  -V | --verbose    Enable Verbose mode."
-  echo "  -q | --quiet      Continue force execution."
+
+  h1 " $(package "name")"
+  hr "BashBox" "-"
+  if [[ -n "$(package "description")" ]]; then
+    p "$(package "description")"
+    br
+  fi
+  h2 "Usage"
+  p "$(package "executable") [options] <command> <arguments>"
+  br
+  h2 "Options"
+  p "  -h | --help       Display the usage message"
+  p "  -v | --version    Display script Version."
+  #echo "  -c                Custom color via -c color."
+  #p "  -V | --verbose    Enable Verbose mode (if available)."
+  #p "  -q | --quiet      Enable Quiet mode (if available)."
+  br
+  h2 "Commands"
+  p "* $(package "executable") : The home screen"
+  if [[ -n "$(package "repo")" ]]; then
+    br
+    p "Repo: ${link}$(package "repo")${x}"
+    br
+  fi
+
 }
 
 # Using getopts for the portability
 #+as it is a shell builtin instead of
 #+an external program like "getopt".
-while getopts ":hvc:Vq-:" opt; do
+# If -c ":vhc:Vq-:"
+while getopts ":hvVq-:" opt; do
   # Avoid placing an argument expencting option
   #+before the "-:" mark, like ":hvVqc:-:"
   case $opt in
@@ -33,18 +52,19 @@ while getopts ":hvc:Vq-:" opt; do
     ;;
   v)
     # -v short flag for version.
-    printf "%s v%s\n" "$(get_conf "name")" "$VERSION"
-    [[ -n "$REPO" ]] && printf "Repo: %s\n" "$REPO"
+    br
+    p "${strong}${txtPrimary}$(package "name")${x}: ${em}v$(package "version")${x}"
+    br
     exit 0
     ;;
-  c)
+    #c)
     # Custom flag -c expecting a color name as argument,
     #+that will be placed into the color variable.
     # Usage: myScript -c purple
     # Inside the script: echo "True, $color is a great one."
-    color=${OPTARG}
-    exit 0
-    ;;
+    #color=${OPTARG}
+    #exit 0
+    #;;
   V)
     # -V flag activating vebose mode
     # [[ "$verbose" == 1 ]] && echo "Chatty stuff"
@@ -68,8 +88,9 @@ while getopts ":hvc:Vq-:" opt; do
       ;;
     # --version
     version)
-      printf "%s v%s\n" "$SCRIPT_NAME" "$VERSION"
-      [[ -n "$REPO" ]] && printf "Repo: %s\n" "$REPO"
+      br
+      p "${strong}${txtPrimary}$(package "name")${x}: ${em}v$(package "version")${x}"
+      br
       exit 0
       ;;
     # --verbose

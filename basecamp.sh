@@ -146,7 +146,6 @@ package() {
   get_yaml_item "package.${key}" "${ROOT}/Sherpa.yaml"
 }
 
-
 #
 #
 #    CRUD the data from data/
@@ -185,55 +184,3 @@ dataDelete() {
   local key="$2"
   remove_yaml_item "${key}" "${ROOT}/data/${file}.yaml"
 }
-
-
-
-
-#
-# --- To be Deprecated ----
-# Check to see if it can be removed
-#
-
-#
-# Reliquats of early versions
-# before adding the generic
-# verb_yaml_item() functions
-#
-
-# add_config() {
-#   local key="$1"
-#   local value="$2"
-#   local file="$3"
-
-#   yq -i ".$key = \"$value\"" "$file"
-# }
-# add_conf() {
-#   local key="$1"
-#   local value="$2"
-
-#   yq -i ".$key = \"$value\"" ./Sherpa.yaml
-# }
-
-# get_config() {
-#   local key="$1"
-
-#   yq e ".$key" Sherpa.yaml
-# }
-
-# get_conf() {
-#   local key="$1"
-#   local file="$2"
-#   yq e ".$key" "$file"
-# }
-
-# update_config() {
-#   local key="$1"
-#   local newValue="$2"
-
-#   yq -i ".$key = \"$newValue\"" ./Sherpa.yaml
-# }
-
-# remove_config() {
-#   local key="$1"
-#   yq -i "del(.$key)" ./Sherpa.yaml
-# }
