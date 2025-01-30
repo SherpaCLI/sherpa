@@ -30,26 +30,6 @@ if [[ "$#" == 0 ]]; then # Home Route
   text-center "$(date "+%b %d - %H:%M")"
 
   #
-  #  --- LocalLibs List ---
-  #
-
-  # Create an array of first-level directories
-  mapfile -t libs < <(find "${SCD}/lib" -maxdepth 1 -type d -not -path "${SCD}/lib" -printf '%f\n')
-  # Remove the trailing slash from directory names
-  libs=("${libs[@]%/}")
-  # Loop through the array
-  h2 "Local Libraries from \$SCD/lib"
-  if [[ -z "${libs[*]}" ]]; then
-    p "${btnWarning} Empty ${x} Create one. Check the Docs."
-  else
-    for lib in "${libs[@]}"; do
-      # Print out each dir name
-      p "* ${txtBlue}$lib${x}"
-    done
-  fi
-  br
-
-  #
   #  --- LocalBoxes List ---
   #
 
@@ -58,7 +38,7 @@ if [[ "$#" == 0 ]]; then # Home Route
   # Remove the trailing slash from directory names
   boxes=("${boxes[@]%/}")
   # Loop through the array
-  h2 "Local BashBoxes & their executable name"
+  p "${txtGreen}Local BashBoxes: ${em}executable${x}"
   if [[ -z "${boxes[*]}" ]]; then
     p "${btnWarning} Empty ${x} Try: ${em}sherpa new hello${x}"
   else
@@ -78,7 +58,7 @@ if [[ "$#" == 0 ]]; then # Home Route
   # Remove the trailing slash from directory names
   dirs=("${dirs[@]%/}")
   # Loop through the array
-  h2 "Installed BashBoxes & their executable name"
+  p "${txtGreen}Installed BashBoxes: ${em}executable${x}"
   if [[ -z "${dirs[*]}" ]]; then
     p "${btnWarning} Empty ${x} Install something. See the Docs."
   else
@@ -89,13 +69,53 @@ if [[ "$#" == 0 ]]; then # Home Route
   fi
   br
 
+  #
+  #  --- LocalLibs List ---
+  #
+
+  # Create an array of first-level directories
+  mapfile -t libs < <(find "${SCD}/lib" -maxdepth 1 -type d -not -path "${SCD}/lib" -printf '%f\n')
+  # Remove the trailing slash from directory names
+  libs=("${libs[@]%/}")
+  # Loop through the array
+  h2 " Local Libraries"
+  if [[ -z "${libs[*]}" ]]; then
+    p "${btnWarning} Empty ${x} Create one. Check the Docs."
+  else
+    for lib in "${libs[@]}"; do
+      # Print out each dir name
+      p "* ${txtBlue}$lib${x}"
+    done
+  fi
+  br
+
+  #
+  #  --- Installed Libraries ---
+  #
+
+  # Create an array of first-level directories
+  mapfile -t dirs < <(find "${SCD}/bbr/lib" -maxdepth 1 -type d -not -path "${SCD}/bbr/lib" -printf '%f\n')
+  # Remove the trailing slash from directory names
+  dirs=("${dirs[@]%/}")
+  # Loop through the array
+  h2 " Installed Libraries"
+  if [[ -z "${dirs[*]}" ]]; then
+    p "${btnWarning} Empty ${x} Install something. See the Docs."
+  else
+    for dir in "${dirs[@]}"; do
+      # Print out each dir name
+      p "* ${txtBlue}$dir${x}"
+    done
+  fi
+  br
+
   # ---------------------- #
   #      Sh:erpa Links     #
   # ---------------------- #
 
   h3 "Join us, the coffee is still warm."
-  p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
-  p "Github: ${link}http://github.com/SherpaBasecamp${x}"
+  p "Docs: ${link}http://sherpa-cli.netlify.app${x}"
+  p "Github: ${link}http://github.com/SherpaCLI${x}"
   p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
   br
 

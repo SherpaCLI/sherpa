@@ -145,3 +145,53 @@ if [[ "$1" == "rmLib" ]]; then # rmLib
   exit 0
 
 fi # End rmLib
+
+# ---------------------------- #
+#  Update a local BashBox Lib  #
+# ---------------------------- #
+
+if [[ "$1" == "upLib" ]]; then # upLib
+
+  # Like in ${SCD}/lib/<libName>
+  libName="$2"
+
+  # Warning if Directory not found
+  if [[ ! -d "${SCD}/lib/${libName}" ]]; then
+    br
+    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
+    br
+
+    exit 1
+  fi
+
+  #
+  #   --- Output ---
+  #
+
+  confirm "Do you want to update ${libName}?"
+
+  br
+  h2 " No problem, let's go..."
+  br
+
+  # Get inside
+  p "- Moving into the Directory"
+  cd "${SCD}/lib/${libName}" || return
+
+  # Pull
+  branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
+  p "- Reset from origin/${branch}"
+  br
+  git fetch origin "$branch"
+
+  if git reset --hard origin/"$branch"; then
+    br
+    p "${btnSuccess} Done! ${x} ${libName} is updated."
+    br
+  else
+    br
+    p "${btnWarning} Oops! ${x} Command exited with code ${?}"
+    br
+  fi
+
+fi # End upLib

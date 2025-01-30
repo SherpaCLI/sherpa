@@ -393,20 +393,9 @@ clear
 h1 " Welcome to the Basecamp 👋"
 hr "Sh:erpa" "-"
 text-center "$(date "+%b %d - %H:%M")"
-mapfile -t libs < <(find "${SCD}/lib" -maxdepth 1 -type d -not -path "${SCD}/lib" -printf '%f\n')
-libs=("${libs[@]%/}")
-h2 "Local Libraries from \$SCD/lib"
-if [[ -z "${libs[*]}" ]]; then
-p "${btnWarning} Empty ${x} Create one. Check the Docs."
-else
-for lib in "${libs[@]}"; do
-p "* ${txtBlue}$lib${x}"
-done
-fi
-br
 mapfile -t boxes < <(find "${SCD}/boxes" -maxdepth 1 -type d -not -path "${SCD}/boxes" -printf '%f\n')
 boxes=("${boxes[@]%/}")
-h2 "Local BashBoxes & their executable name"
+p "${txtGreen}Local BashBoxes: ${em}executable${x}"
 if [[ -z "${boxes[*]}" ]]; then
 p "${btnWarning} Empty ${x} Try: ${em}sherpa new hello${x}"
 else
@@ -417,7 +406,7 @@ fi
 br
 mapfile -t dirs < <(find "${SCD}/bbr/bin" -maxdepth 1 -type d -not -path "${SCD}/bbr/bin" -printf '%f\n')
 dirs=("${dirs[@]%/}")
-h2 "Installed BashBoxes & their executable name"
+p "${txtGreen}Installed BashBoxes: ${em}executable${x}"
 if [[ -z "${dirs[*]}" ]]; then
 p "${btnWarning} Empty ${x} Install something. See the Docs."
 else
@@ -426,9 +415,31 @@ p "* ${txtBlue}$dir${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/bbr/b
 done
 fi
 br
+mapfile -t libs < <(find "${SCD}/lib" -maxdepth 1 -type d -not -path "${SCD}/lib" -printf '%f\n')
+libs=("${libs[@]%/}")
+h2 " Local Libraries"
+if [[ -z "${libs[*]}" ]]; then
+p "${btnWarning} Empty ${x} Create one. Check the Docs."
+else
+for lib in "${libs[@]}"; do
+p "* ${txtBlue}$lib${x}"
+done
+fi
+br
+mapfile -t dirs < <(find "${SCD}/bbr/lib" -maxdepth 1 -type d -not -path "${SCD}/bbr/lib" -printf '%f\n')
+dirs=("${dirs[@]%/}")
+h2 " Installed Libraries"
+if [[ -z "${dirs[*]}" ]]; then
+p "${btnWarning} Empty ${x} Install something. See the Docs."
+else
+for dir in "${dirs[@]}"; do
+p "* ${txtBlue}$dir${x}"
+done
+fi
+br
 h3 "Join us, the coffee is still warm."
-p "Docs: ${link}http://sherpa-basecamp.netlify.app${x}"
-p "Github: ${link}http://github.com/SherpaBasecamp${x}"
+p "Docs: ${link}http://sherpa-cli.netlify.app${x}"
+p "Github: ${link}http://github.com/SherpaCLI${x}"
 p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
 br
 fi # End Home Route
@@ -594,6 +605,34 @@ p "${btnSuccess} Done! ${x} ${strong}${libName}${x} just left the camp"
 br
 exit 0
 fi # End rmLib
+if [[ "$1" == "upLib" ]]; then # upLib
+libName="$2"
+if [[ ! -d "${SCD}/lib/${libName}" ]]; then
+br
+p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
+br
+exit 1
+fi
+confirm "Do you want to update ${libName}?"
+br
+h2 " No problem, let's go..."
+br
+p "- Moving into the Directory"
+cd "${SCD}/lib/${libName}" || return
+branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
+p "- Reset from origin/${branch}"
+br
+git fetch origin "$branch"
+if git reset --hard origin/"$branch"; then
+br
+p "${btnSuccess} Done! ${x} ${libName} is updated."
+br
+else
+br
+p "${btnWarning} Oops! ${x} Command exited with code ${?}"
+br
+fi
+fi # End upLib
 if [[ "$1" == "rmBox" ]]; then # Link
 boxName="$2"
 if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
@@ -943,9 +982,6 @@ u) url=${OPTARG} ;;
 *) echo "Invalid flag" ;;
 esac
 done
-[[ ! -d "${SCD}/bbr" ]] && mkdir "${SCD}/bbr"
-[[ ! -d "${SCD}/bbr/bin" ]] && mkdir "${SCD}/bbr/bin"
-[[ ! -d "${SCD}/bbr/lib" ]] && mkdir "${SCD}/bbr/lib"
 if [[ $# == 0 ]]; then
 br
 h1 "Install a BashBox from Git"
@@ -1020,24 +1056,62 @@ fi                                                     # End isLinkAlready
 fi                                                       # End isInstalled
 fi # End installBin
 if [[ $type = "lib" ]]; then # installLib
+p "- Getting the code..."
 git clone "$url" "${SCD}/bbr/lib/${name}"
+br
 target="${SCD}/bbr/lib/${name}"
 symlink="${SCD}/lib/${name}"
-p "Creating a symlink into ${SCD}/lib"
+p "- Creating a symlink into ${SCD}/lib"
 ln -s "${target}" "${symlink}"
 if ln -s "$target" "${symlink}"; then # Log
 bbName="${name}"
 bbDir="${SCD}/bbr/lib/${name}"
 libReg="${SCD}/registers/bbrLib.yaml"
-add_yaml_item "name" "$bbName" "$libReg"
+add_yaml_parent "${bbName}" "${bbrLib}"
 add_yaml_item "${bbName}.root" "$bbDir" "$libReg"
+add_yaml_item "${bbName}.repo" "$url" "$libReg"
 add_yaml_item "${bbName}.type" "bbr" "$libReg"
 fi # End Log
+br
+p "${btnSuccess} Done! ${x} new Library available."
+br
 fi #End installLib
 fi # End ifUrl
 fi # End Route
-if [[ "$1" == "uninstall" ]]; then
-box_name="$2"
+if [[ "$1" == "uninstall" ]]; then # Uninstall
+shift
+name=""
+type="bin"
+while getopts "n:t:" opt; do
+case $opt in
+n) name=${OPTARG} ;;
+t) type=${OPTARG} ;;
+*) echo "Invalid flag" ;;
+esac
+done
+if [[ $# == 0 ]]; then
+br
+h1 " Uninstall an Executable or Library"
+hr "+" "-"
+p " ${em}sherpa uninstall -n \"name\" -t \"bin\"${x}"
+br
+p "-n name: Project's name... n=\"projName\""
+p "-t type: Either bin or lib"
+exit 1
+fi
+if [[ -n "$name" ]]; then # We Have A Name
+p "name: $name"
+p "type: $type"
+br
+if [[ -z $type ]]; then # typeCheck
+p "If the -n flag is used, -t must be also set."
+p "The -t flag must be either -t='bin' or -t='lib'"
+exit 1
+elif [[ $type != "bin" && $type != "lib" ]]; then
+p "The -t flag must be either -t='bin' or -t='lib'"
+fi # End typeCheck
+if [[ "$type" == "bin" ]]; then # Uninstall Box
+box_name="$name"
 register="${SCD}/registers/bbrBin.yaml"
 root="${SCD}/bbr/bin/${box_name}"
 exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
@@ -1059,7 +1133,28 @@ p "${txtGreen}-${x} Removed register entry: ${em}${box_name}${x}"
 br
 p "${btnSuccess} Done! ${x} ${strong}${box_name}${x} just left the camp"
 br
-fi
+fi # end Uninstall Box
+if [[ "$type" == "lib" ]]; then # Uninstall Box
+lib_name="$name"
+register="${SCD}/registers/bbrLib.yaml"
+root="${SCD}/bbr/lib/${lib_name}"
+link="${SCD}/lib/${name}"
+confirm "Do you really want to uninstall ${lib_name}?"
+br
+h2 " Allright, let's clean a little..."
+br
+[[ -L "$link" ]] && rm "$link"
+p "${txtGreen}-${x} Removed symlink: ${em}${exe}${x}"
+rm -rf "$root"
+p "${txtGreen}-${x} Removed directory: ${em}${root}${x}"
+remove_yaml_item "$lib_name" "$register"
+p "${txtGreen}-${x} Removed register entry: ${em}${lib_name}${x}"
+br
+p "${btnSuccess} Done! ${x} ${strong}${lib_name}${x} just left the camp"
+br
+fi # end Uninstall Box
+fi # end We Have A Name
+fi # end Uninstall
 if [[ "$1" == "update" ]]; then # update
 boxName="$2"
 if [[ ! -d "${SCD}/bbr/bin/${boxName}" ]]; then

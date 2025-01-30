@@ -60,9 +60,9 @@ if [[ "$1" == "install" ]]; then # Start Route
   done
 
   # Check directories existance, and create if not
-  [[ ! -d "${SCD}/bbr" ]] && mkdir "${SCD}/bbr"
-  [[ ! -d "${SCD}/bbr/bin" ]] && mkdir "${SCD}/bbr/bin"
-  [[ ! -d "${SCD}/bbr/lib" ]] && mkdir "${SCD}/bbr/lib"
+  # [[ ! -d "${SCD}/bbr" ]] && mkdir "${SCD}/bbr"
+  # [[ ! -d "${SCD}/bbr/bin" ]] && mkdir "${SCD}/bbr/bin"
+  # [[ ! -d "${SCD}/bbr/lib" ]] && mkdir "${SCD}/bbr/lib"
 
   # A second argument is needed
   # ...the project's name/folder.
@@ -183,15 +183,15 @@ if [[ "$1" == "install" ]]; then # Start Route
     # - Use with: use "bbName/someFileInside"
     if [[ $type = "lib" ]]; then # installLib
 
-      # TODO: Get the project name from Sherpa.yaml
-      # Or use the $name value from the -n flag
+      p "- Getting the code..."
       git clone "$url" "${SCD}/bbr/lib/${name}"
+      br
 
       target="${SCD}/bbr/lib/${name}"
       symlink="${SCD}/lib/${name}"
 
       # Creating a symlink
-      p "Creating a symlink into ${SCD}/lib"
+      p "- Creating a symlink into ${SCD}/lib"
       ln -s "${target}" "${symlink}"
 
       # If Install is a Success, log it
@@ -204,10 +204,15 @@ if [[ "$1" == "install" ]]; then # Start Route
         # Save a log into the tests registers
         # in ${SCD}/registers/tests.yaml
         # 2025-jan-21: /path/to/tests/dir
-        add_yaml_item "name" "$bbName" "$libReg"
+        add_yaml_parent "${bbName}" "${bbrLib}"
         add_yaml_item "${bbName}.root" "$bbDir" "$libReg"
+        add_yaml_item "${bbName}.repo" "$url" "$libReg"
         add_yaml_item "${bbName}.type" "bbr" "$libReg"
       fi # End Log
+
+      br
+      p "${btnSuccess} Done! ${x} new Library available."
+      br
 
     fi #End installLib
 
