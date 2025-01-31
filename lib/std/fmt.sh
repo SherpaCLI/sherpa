@@ -59,7 +59,36 @@ icoDocker="\uf21f"
 
 # TODO: Get the value from the yaml
 #       or set it to Green
-primaryColor="Green"
+#primaryColor="Green"
+
+# Chech if a string is a valid Color
+is_color() {
+  local color="$1"
+  local valid_colors=("Black" "Red" "Green" "Yellow" "Blue" "Magenta" "Cyan" "White")
+
+  for valid_color in "${valid_colors[@]}"; do
+    if [ "$color" = "$valid_color" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+# Custom Primary Color for all Projects
+scdYaml="${SCD}/Sherpa.yaml"
+customColor="$(get_yaml_item "primaryColor" "$scdYaml")"
+# Per project primaryColor:
+# define something like mainColor="Magenta"
+# before calling: use "std/fmt"
+
+if is_color "$mainColor"; then
+  primaryColor="$mainColor"
+elif is_color "$customColor"; then
+  primaryColor="$customColor"
+else
+  primaryColor="Green"
+fi
 
 case $primaryColor in
 Black)
