@@ -91,6 +91,12 @@ confirm() {
 
 # Move those functions to tent/yaml.sh
 
+is_key() {
+    local key=$1
+    local file=$2
+    yq e "has(\"$key\")" "$file" | grep -q "true"
+}
+
 add_yaml_parent() {
   local key="$1"
   local file="$2"
@@ -144,6 +150,27 @@ print_yaml_items() {
 package() {
   local key="$1"
   get_yaml_item "package.${key}" "${ROOT}/Sherpa.yaml"
+}
+
+
+#
+#     Get env data from ${SCD}/env.yaml
+#
+env() {
+  local key="$1"
+  local env_file="${SCD}/env.yaml"   
+  
+  if [ -z "$key" ]; then
+    p "${btnWarning} MissingKey! ${x} Usage: ${em}env \"<key>\"${x}"
+    exit 1
+  fi
+
+  if [[ -n "$key" && ! $(is_key "$key" "${env_file}") ]]; then
+    p "${btnWarning} Oops! ${x} $key is not a valid key in ${env_file}"
+    exit 1
+fi
+
+  get_yaml_item "${key}" "${env_file}"
 }
 
 #
