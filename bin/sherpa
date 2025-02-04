@@ -48,6 +48,11 @@ br
 exit 1
 fi
 }
+is_key() {
+local key=$1
+local file=$2
+yq e "has(\"$key\")" "$file" | grep -q "true"
+}
 add_yaml_parent() {
 local key="$1"
 local file="$2"
@@ -82,6 +87,19 @@ yq eval "." "$file"
 package() {
 local key="$1"
 get_yaml_item "package.${key}" "${ROOT}/Sherpa.yaml"
+}
+env() {
+local key="$1"
+local env_file="${SCD}/env.yaml"
+if [ -z "$key" ]; then
+p "${btnWarning} MissingKey! ${x} Usage: ${em}env \"<key>\"${x}"
+exit 1
+fi
+if [[ -n "$key" && ! $(is_key "$key" "${env_file}") ]]; then
+p "${btnWarning} Oops! ${x} $key is not a valid key in ${env_file}"
+exit 1
+fi
+get_yaml_item "${key}" "${env_file}"
 }
 dataGet() {
 local file="$1"
@@ -133,7 +151,25 @@ bgCyan="\033[46m"      # .bg-cyan
 bgLightGray="\033[37m" # .bg-lightGray
 icoLeaf="\ue22f"
 icoDocker="\uf21f"
+is_color() {
+local color="$1"
+local valid_colors=("Black" "Red" "Green" "Yellow" "Blue" "Magenta" "Cyan" "White")
+for valid_color in "${valid_colors[@]}"; do
+if [ "$color" = "$valid_color" ]; then
+return 0
+fi
+done
+return 1
+}
+scdYaml="${SCD}/Sherpa.yaml"
+customColor="$(get_yaml_item "primaryColor" "$scdYaml")"
+if is_color "$mainColor"; then
+primaryColor="$mainColor"
+elif is_color "$customColor"; then
+primaryColor="$customColor"
+else
 primaryColor="Green"
+fi
 case $primaryColor in
 Black)
 txtPrimary=${txtBlack}
@@ -389,9 +425,10 @@ shift $((OPTIND - 1))
 localBoxes="${SCD}/registers/localBoxes.yaml"
 bbrBin="${SCD}/registers/bbrBin.yaml"
 if [[ "$#" == 0 ]]; then # Home Route
+localVersion="$(get_yaml_item "version" "${SDD}/Sherpa.yaml")"
 clear
 h1 " Welcome to the Basecamp 👋"
-hr "Sh:erpa" "-"
+hr "Sh:erpa v${localVersion}" "-"
 text-center "$(date "+%b %d - %H:%M")"
 mapfile -t boxes < <(find "${SCD}/boxes" -maxdepth 1 -type d -not -path "${SCD}/boxes" -printf '%f\n')
 boxes=("${boxes[@]%/}")
@@ -442,6 +479,12 @@ p "Docs: ${link}http://sherpa-cli.netlify.app${x}"
 p "Github: ${link}http://github.com/SherpaCLI${x}"
 p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
 br
+cd "${SDD}" || exit 1
+git fetch origin
+if [ "$(git rev-list HEAD..origin/$(git branch --show-current) --count)" -gt 0 ]; then
+p "Updates are available. Run ${em}sherpa self-update${x} to update."
+p "See: ${link}http://sherpa-cli.netlify.app${x} for more information."
+fi
 fi # End Home Route
 if [[ "$1" == aliases ]]; then
 aliasman -e

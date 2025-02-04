@@ -23,10 +23,12 @@ bbrBin="${SCD}/registers/bbrBin.yaml"
 # If the script is called with no arguments
 if [[ "$#" == 0 ]]; then # Home Route
 
+  localVersion="$(get_yaml_item "version" "${SDD}/Sherpa.yaml")"
+
   clear
 
   h1 " Welcome to the Basecamp 👋"
-  hr "Sh:erpa" "-"
+  hr "Sh:erpa v${localVersion}" "-"
   text-center "$(date "+%b %d - %H:%M")"
 
   #
@@ -118,6 +120,22 @@ if [[ "$#" == 0 ]]; then # Home Route
   p "Github: ${link}http://github.com/SherpaCLI${x}"
   p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
   br
+
+  # ---------------------- #
+  #      Check Updates     #
+  # ---------------------- #
+
+  # Move inside ${SDD}
+  cd "${SDD}" || exit 1
+
+  # Fetch the latest changes from the remote
+  git fetch origin
+
+  # Check if the origin is ahead of the local branch
+  if [ "$(git rev-list HEAD..origin/$(git branch --show-current) --count)" -gt 0 ]; then
+    p "Updates are available. Run ${em}sherpa self-update${x} to update."
+    p "See: ${link}http://sherpa-cli.netlify.app${x} for more information."
+  fi
 
 fi # End Home Route
 
