@@ -83,12 +83,6 @@ if [[ "$1" == "build" || "$1" == "b" ]]; then #build
     p "- Generating documentation from that file"
     [[ ! -d docs ]] && mkdir docs
     shdoc <"$combinedScript" >"docs/${finalScript}.md"
-    echo -e "--- Commands/Routes & nonFunctions ---\n" >>"docs/${finalScript}.md"
-    # Additional parsing with bashdoc
-    bashdoc "$combinedScript" >>"docs/${finalScript}.md"
-    if [[ -f "docs/${finalScript}.md" ]]; then
-      p "  Check docs/${finalScript}.md"
-    fi
 
     p "- Removing comments and empty lines..."
     sed -i '/^\s*#/d; /^\s*$/d' "$combinedScript"

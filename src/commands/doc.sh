@@ -1,5 +1,5 @@
 # @file Doc
-# @brief Generating documentation with shdoc & bashdoc.
+# @brief Generating documentation with shdoc
 # @description
 #
 #    To be used from the root of a Sherpa project,
@@ -7,18 +7,14 @@
 #
 #    It will:
 #      * Create the docs/ folder if necessary
-#      * Use .sherpa/templates/bashdoc.hbs as template
 #      * Loop trough the .sh files in the src/ folder
 #      * Generates the files in the docs/ folder
 #
 #  Usage: sherpa d, doc
 #
-# @see [shdoc](https://github.com/reconquest/shdoc).
+# @see [](https://sherpa-cli.netlify.app/tools/docs-gen)
 
-#;
-# Doc
-# Generates .md docs with both Shdoc & Bashdoc
-#"
+
 if [[ "$1" == "doc" || "$1" == "d" ]]; then # Shdoc
 
   # A Sherpa.yaml file bust be present in the directory
@@ -37,32 +33,23 @@ if [[ "$1" == "doc" || "$1" == "d" ]]; then # Shdoc
   # Create docs directory if it doesn't exist
   [[ ! -d "$DOCS_DIR" ]] && mkdir -p "$DOCS_DIR"
 
-  # Loop over all .sh files in the src directory
-  for script in "$SRC_DIR"/*.sh; do
-    # Check if there are any .sh files
-    if [[ -f "$script" ]]; then
-      # Extract the base name (filename without path)
-      base_name=$(basename "$script" .sh)
-
-      # Generate the markdown documentation using shdoc
-      shdoc <"$script" >"$DOCS_DIR/$base_name.md"
-
-      echo -e "--- Some more, via BashDoc ---\n" >>"$DOCS_DIR/$base_name.md"
-
-      # Additional parsing with bashdoc
-      bashdoc "$script" >>"$DOCS_DIR/$base_name.md"
-
-      # Log messages according to the command issue
-      if [[ -f "$DOCS_DIR/$base_name.md" ]]; then
-        br
-        p "${btnSuccess} Done! ${x} ... ${DOCS_DIR}/$base_name.md"
-        br
-      else
-        p "Can't generate Doc."
-        exit 1
-      fi
-
-    fi
+  # Use find to locate all .sh files in src and its subdirectories
+  find "$SRC_DIR" -type f -name "*.sh" | while read -r script; do
+    # Extract the relative path from SRC_DIR
+    rel_path=${script#"$SRC_DIR/"}
+    
+    # Create the destination directory structure
+    dest_dir="$DOCS_DIR/$(dirname "$rel_path")"
+    mkdir -p "$dest_dir"
+    
+    # Extract the base name (filename without path and extension)
+    base_name=$(basename "$script" .sh)
+    
+    # Generate the markdown documentation using shdoc
+    shdoc < "$script" > "$dest_dir/$base_name.md"
   done
-
+  
+  br
+  p "${btnSuccess} Done! ${x} Check the ${em}docs/${x} folder"
+  br
 fi # End Doc

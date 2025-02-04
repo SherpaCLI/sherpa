@@ -756,11 +756,6 @@ p "- Partials combined into ${combinedScript}"
 p "- Generating documentation from that file"
 [[ ! -d docs ]] && mkdir docs
 shdoc <"$combinedScript" >"docs/${finalScript}.md"
-echo -e "--- Commands/Routes & nonFunctions ---\n" >>"docs/${finalScript}.md"
-bashdoc "$combinedScript" >>"docs/${finalScript}.md"
-if [[ -f "docs/${finalScript}.md" ]]; then
-p "  Check docs/${finalScript}.md"
-fi
 p "- Removing comments and empty lines..."
 sed -i '/^\s*#/d; /^\s*$/d' "$combinedScript"
 p "- Removing trailing spaces..."
@@ -976,22 +971,16 @@ fi
 SRC_DIR="src"
 DOCS_DIR="docs"
 [[ ! -d "$DOCS_DIR" ]] && mkdir -p "$DOCS_DIR"
-for script in "$SRC_DIR"/*.sh; do
-if [[ -f "$script" ]]; then
+find "$SRC_DIR" -type f -name "*.sh" | while read -r script; do
+rel_path=${script#"$SRC_DIR/"}
+dest_dir="$DOCS_DIR/$(dirname "$rel_path")"
+mkdir -p "$dest_dir"
 base_name=$(basename "$script" .sh)
-shdoc <"$script" >"$DOCS_DIR/$base_name.md"
-echo -e "--- Some more, via BashDoc ---\n" >>"$DOCS_DIR/$base_name.md"
-bashdoc "$script" >>"$DOCS_DIR/$base_name.md"
-if [[ -f "$DOCS_DIR/$base_name.md" ]]; then
-br
-p "${btnSuccess} Done! ${x} ... ${DOCS_DIR}/$base_name.md"
-br
-else
-p "Can't generate Doc."
-exit 1
-fi
-fi
+shdoc < "$script" > "$dest_dir/$base_name.md"
 done
+br
+p "${btnSuccess} Done! ${x} Check the ${em}docs/${x} folder"
+br
 fi # End Doc
 if [[ "$1" == "test" || "$1" == "t" ]]; then # test
 if [[ ! -f Sherpa.yaml ]]; then

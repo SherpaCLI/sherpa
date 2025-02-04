@@ -1,9 +1,9 @@
-# --- Global CONSTANTS ------------------ #
+# @file Docs page Title (e.g. "MyScript")
+# @brief Tagline, printed just below the title.
+# @description
+#     This section will go into 'Overview'
+#
+# @see [Docs](https://sherpa-cli.netlify.app/tools/docs-gen)
 
-# Ignore the PKG* variables
-#+those are old "left-overs"
-#readonly PKG_NAME="-"
-#readonly PKG_VERS="-"
-#readonly PKG_REPO="-"
 
 # --------------------------------------- #
