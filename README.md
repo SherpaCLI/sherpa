@@ -75,9 +75,35 @@ main() {
 [[ "$#" == 0 ]] && main; exit 0
 ```
 
-Sh:erpa will merge the partials plus those sourced with `use "dir/file"`, generte docs, remove comments and blanks, then build the script and make it available for direct invocations. The tool can be picked-up by WebDevs discovering Bash or experienced shell scripters taking advantage of the build, watch and modularity while writing things their own way.
+Sh:erpa will merge the partials plus those sourced with `use "dir/file"`, generate docs, remove comments and blanks, then build the script and make it available for direct invocations. The tool can be picked-up by WebDevs discovering Bash or experienced shell scripters taking advantage of the build, watch and modularity while writing things their own way.
 
-### Features
+### Local Libraries
+
+To create your own local library, use something as `sherpa new bob lib`. This would scafold a library version of a BashBox in `$SCD/lib` with that structure:
+
+```bash
+# home/user/sherpa/lib/bob
+.
+├── data
+│   └── example.yaml
+├── lib.sh
+├── README.md
+├── Sherpa.yaml
+└── tests
+    └── example_test.sh
+```
+Any .sh file in `bob/` can be imported in any BashBox with `use "bob/fileName"`.
+
+### Install community-made packages
+
+So far, we can install remote BashBoxes or Libs from Git repositories with:
+
+* BashBox: `sherpa install -n "<someName>" -u "<repoUrl>"`
+* BashLib: `sherpa install -n "<someName>" -u "<repoUrl>" -t "lib"`
+
+More details in the Documentation, and some available repos to play with soon listed here. If you intend to share some code, great :) come on the Discord Server for timely updates about the publishing part.
+
+## Features
 
 Check **[the Sh:erpa Website](https://sherpa-cli.netlify.app)** or come talk in the **[Discord](https://discord.gg/66bQJ6cuXG)**, but some included features are:
 
