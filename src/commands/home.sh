@@ -70,7 +70,7 @@ if [[ "$#" == 0 ]]; then # Home Route
   br
 
   #
-  #  --- LocalLibs List ---
+  #  --- LocalLibs List ----
   #
 
   # Create an array of first-level directories
