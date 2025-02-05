@@ -9,6 +9,6 @@ To be used from anywhere.
 It will:
 * Display a welcome screen with some evolving data
 
-Usage: sherpa
+Usage: s, sherpa
 
 

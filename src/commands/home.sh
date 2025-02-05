@@ -7,7 +7,7 @@
 #    It will:
 #      * Display a welcome screen with some evolving data
 #
-#  Usage: sherpa
+#  Usage: s, sherpa
 #
 
 # shellcheck disable=SC2034
@@ -23,12 +23,10 @@ bbrBin="${SCD}/registers/bbrBin.yaml"
 # If the script is called with no arguments
 if [[ "$#" == 0 ]]; then # Home Route
 
-  localVersion="$(get_yaml_item "version" "${SDD}/Sherpa.yaml")"
-
   clear
 
   h1 " Welcome to the Basecamp 👋"
-  hr "Sh:erpa v${localVersion}" "-"
+  hr "Sh:erpa" "-"
   text-center "$(date "+%b %d - %H:%M")"
 
   #
@@ -133,8 +131,7 @@ if [[ "$#" == 0 ]]; then # Home Route
 
   # Check if the origin is ahead of the local branch
   if [ "$(git rev-list HEAD..origin/$(git branch --show-current) --count)" -gt 0 ]; then
-    p "Updates are available. Run ${em}sherpa self-update${x} to update."
-    p "See: ${link}http://sherpa-cli.netlify.app${x} for more information."
+    em "Updates are available. Run ${em}sherpa self-update${x} to update."
   fi
 
 fi # End Home Route
