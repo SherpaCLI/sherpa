@@ -479,9 +479,9 @@ p "Github: ${link}http://github.com/SherpaCLI${x}"
 p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
 br
 cd "${SDD}" || exit 1
-git fetch origin
+git fetch origin &>/dev/null
 if [ "$(git rev-list HEAD..origin/$(git branch --show-current) --count)" -gt 0 ]; then
-em "Updates are available. Run ${em}sherpa self-update${x} to update."
+p "Updates are available. Run ${em}sherpa self-update${x} to update."
 fi
 fi # End Home Route
 if [[ "$1" == aliases ]]; then

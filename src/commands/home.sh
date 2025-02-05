@@ -125,13 +125,11 @@ if [[ "$#" == 0 ]]; then # Home Route
 
   # Move inside ${SDD}
   cd "${SDD}" || exit 1
-
   # Fetch the latest changes from the remote
-  git fetch origin
-
+  git fetch origin &>/dev/null
   # Check if the origin is ahead of the local branch
   if [ "$(git rev-list HEAD..origin/$(git branch --show-current) --count)" -gt 0 ]; then
-    em "Updates are available. Run ${em}sherpa self-update${x} to update."
+    p "Updates are available. Run ${em}sherpa self-update${x} to update."
   fi
 
 fi # End Home Route
