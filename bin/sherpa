@@ -481,7 +481,7 @@ br
 cd "${SDD}" || exit 1
 git fetch origin -q &>/dev/null
 if [ "$(git rev-list HEAD..origin/$(git branch --show-current) --count)" -gt 0 ]; then
-p "Updates available. Run: sherpa self-update, or read changelogs."
+p ":: Update Available ::"
 fi
 fi # End Home Route
 if [[ "$1" == aliases ]]; then

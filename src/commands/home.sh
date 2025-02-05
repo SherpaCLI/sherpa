@@ -129,7 +129,7 @@ if [[ "$#" == 0 ]]; then # Home Route
   git fetch origin -q &>/dev/null
   # Check if the origin is ahead of the local branch
   if [ "$(git rev-list HEAD..origin/$(git branch --show-current) --count)" -gt 0 ]; then
-    p "Updates available. Run: sherpa self-update, or read changelogs."
+    p ":: Update Available ::"
   fi
 
 fi # End Home Route
