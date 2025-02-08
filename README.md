@@ -12,7 +12,7 @@ Docs: [sherpa-cli.netlify.app](https://sherpa-cli.netlify.app) - Discord: [Commu
 
 ### Quick install
 
-Be sure to have Bash, curl, gawk instaled, then run the installer:
+Be sure to have curl, git, gawk instaled (and obviously Bash), then run the installer:
 
 ```bash
 bash -c "$(curl -sLo- https://sherpa-cli.netlify.app/install.sh)"
@@ -27,6 +27,8 @@ It will do the following:
 
 Use a Linux Distribution, still a Linux Distro but from WSL2 or MacOS.
 See [the docs](https://sherpa-cli.netlify.app/getting-started/installation/prerequisites) for more details.
+
+Once done, restart the terminal.
 
 ### The BashBox Anatomy
 
