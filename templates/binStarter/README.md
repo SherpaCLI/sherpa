@@ -6,24 +6,22 @@ _Note: A BashBox is package like a Cargo Crate, but for Bash. It can be installe
 
 ## Prerequisites
 
-[Sh:erpa](https://sherpa-basecamp.netlify.app/) need to be installed, in the same way you need Cargo to install & use crates.
-
-Be sure you have bash, curl & gawk installed, then run:
+Only [Sh:erpa](https://github.com/SherpaCLI/sherpa) is needed, as Bash PackageManager and script builder. Be sure you have curl, git & gawk installed, then run:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/SherpaBasecamp/sherpa/refs/heads/master/tools/install.sh | bash
+bash -c "$(curl -sLo- https://sherpa-cli.netlify.app/install.sh)"
 ```
 
-Check [the QuickInstall](https://sherpa-basecamp.netlify.app/install/install/) page in the documantation.
+Check [the QuickInstall](https://sherpa-cli.netlify.app/install/install/) page in the documantation.
 
 ## Install FooBar
 
 1. Run the Install command
 
 ```bash
-sh install -n "FooBar" -u "https://github.com/AndiKod/AskAI-bashbox.git"
+sh install -n "FooBar" -u "https://github.com/User/repo.git"
 ```
 
-The repo will be cloned, the executable built from the src/ files and be available as `foobar`.
+The repo will be cloned, script built from the src/ and be available as `foobar`.
 
 2. Example usage
