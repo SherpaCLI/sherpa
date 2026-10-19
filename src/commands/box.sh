@@ -15,188 +15,188 @@
 
 cmd_box() {
 
-if [[ "$1" == "localBox" ]]; then # localBox
+	if [[ "$1" == "localBox" ]]; then # localBox
 
-  # Like in ${SCD}/boxes/<boxName>
-  boxName="$2"
+		# Like in ${SCD}/boxes/<boxName>
+		boxName="$2"
 
-  # Warning if Directory not found
-  if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
-    br
-    p "There is no ${txtBlue}${boxName}${x} directory in boxes/"
-    br
+		# Warning if Directory not found
+		if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
+			br
+			p "There is no ${txtBlue}${boxName}${x} directory in boxes/"
+			br
 
-    exit 1
-  fi
+			exit 1
+		fi
 
-  # Data Variables
-  yaml="${SCD}/boxes/${boxName}/Sherpa.yaml"
-  exe="$(get_yaml_item "package.executable" "$yaml")"
+		# Data Variables
+		yaml="${SCD}/boxes/${boxName}/Sherpa.yaml"
+		exe="$(get_yaml_item "package.executable" "$yaml")"
 
-  #
-  #   --- Output ---
-  #
+		#
+		#   --- Output ---
+		#
 
-  clear
-  h1 " ${boxName}"
-  hr "BashBox" "-"
+		clear
+		h1 " ${boxName}"
+		hr "BashBox" "-"
 
-  # Meta data
-  # Add: description, author, licence, docs, repo
-  p "- Root: ${SCD}/boxes/${boxName}"
-  p "- Executable: ${em}${exe}${x}"
-  br
-  p "${txtDanger} Delete ${x} Usage: ${em}sherpa rmBox ${boxName}${x}"
+		# Meta data
+		# Add: description, author, licence, docs, repo
+		p "- Root: ${SCD}/boxes/${boxName}"
+		p "- Executable: ${em}${exe}${x}"
+		br
+		p "${txtDanger} Delete ${x} Usage: ${em}sherpa rmBox ${boxName}${x}"
 
-fi # End localBox
+	fi # End localBox
 
-# ------------------------ #
-#  Delete a local BashBox  #
-# ------------------------ #
+	# ------------------------ #
+	#  Delete a local BashBox  #
+	# ------------------------ #
 
-if [[ "$1" == "rmBox" ]]; then # rmBox
+	if [[ "$1" == "rmBox" ]]; then # rmBox
 
-  # Like in ${SCD}/boxes/<boxName>
-  boxName="$2"
+		# Like in ${SCD}/boxes/<boxName>
+		boxName="$2"
 
-  # Warning if Directory not found
-  if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
-    br
-    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
-    br
+		# Warning if Directory not found
+		if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
+			br
+			p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
+			br
 
-    exit 1
-  fi
+			exit 1
+		fi
 
-  # Data Variables
-  root="${SCD}/boxes/${boxName}"
-  exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
-  link="${SDD}/bin/${exe}"
-  localBoxes="${SCD}/registers/localBoxes.yaml"
+		# Data Variables
+		root="${SCD}/boxes/${boxName}"
+		exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
+		link="${SDD}/bin/${exe}"
+		localBoxes="${SCD}/registers/localBoxes.yaml"
 
-  #
-  #   --- Output ---
-  #
+		#
+		#   --- Output ---
+		#
 
-  confirm "Do you really want to delete ${boxName}?"
-  br
-  h2 " Allright, let's clean a little..."
-  br
+		confirm "Do you really want to delete ${boxName}?"
+		br
+		h2 " Allright, let's clean a little..."
+		br
 
-  # Delete Symlink
-  [[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
-  p "- Removed symlink: ${em}${exe}${x}"
+		# Delete Symlink (use $link: it already honours a SHERPA_DOT_DIR override)
+		[[ -L "$link" ]] && rm "$link"
+		p "- Removed symlink: ${em}${exe}${x}"
 
-  # Delete root direcory
-  rm -rf "$root"
-  p "- Removed directory: ${em}${root}${x}"
+		# Delete root direcory
+		rm -rf "$root"
+		p "- Removed directory: ${em}${root}${x}"
 
-  # Delete register entry
-  remove_yaml_item "$boxName" "$localBoxes"
-  p "- Removed register entry: ${em}${boxName}${x}"
-  br
+		# Delete register entry
+		remove_yaml_item "$boxName" "$localBoxes"
+		p "- Removed register entry: ${em}${boxName}${x}"
+		br
 
-  p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
-  br
+		p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
+		br
 
-  exit 0
+		exit 0
 
-fi # End rmBox
+	fi # End rmBox
 
-# ---------------------------- #
-#  Delete a local BashBox Lib  #
-# ---------------------------- #
+	# ---------------------------- #
+	#  Delete a local BashBox Lib  #
+	# ---------------------------- #
 
-if [[ "$1" == "rmLib" ]]; then # rmLib
+	if [[ "$1" == "rmLib" ]]; then # rmLib
 
-  # Like in ${SCD}/boxes/<boxName>
-  libName="$2"
+		# Like in ${SCD}/boxes/<boxName>
+		libName="$2"
 
-  # Warning if Directory not found
-  if [[ ! -d "${SCD}/lib/${libName}" ]]; then
-    br
-    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
-    br
+		# Warning if Directory not found
+		if [[ ! -d "${SCD}/lib/${libName}" ]]; then
+			br
+			p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
+			br
 
-    exit 1
-  fi
+			exit 1
+		fi
 
-  # Data Variables
-  root="${SCD}/lib/${libName}"
-  localLibs="${SCD}/registers/localLibs.yaml"
+		# Data Variables
+		root="${SCD}/lib/${libName}"
+		localLibs="${SCD}/registers/localLibs.yaml"
 
-  #
-  #   --- Output ---
-  #
+		#
+		#   --- Output ---
+		#
 
-  confirm "Do you really want to delete ${libName}?"
-  br
-  h2 " Allright, let's clean a little..."
-  br
+		confirm "Do you really want to delete ${libName}?"
+		br
+		h2 " Allright, let's clean a little..."
+		br
 
-  # Delete root direcory
-  rm -rf "$root"
-  p "- Removed directory: ${em}${root}${x}"
+		# Delete root direcory
+		rm -rf "$root"
+		p "- Removed directory: ${em}${root}${x}"
 
-  # Delete register entry
-  remove_yaml_item "$libName" "$localLibs"
-  p "- Removed register entry: ${em}${libName}${x}"
-  br
+		# Delete register entry
+		remove_yaml_item "$libName" "$localLibs"
+		p "- Removed register entry: ${em}${libName}${x}"
+		br
 
-  p "${btnSuccess} Done! ${x} ${strong}${libName}${x} just left the camp"
-  br
+		p "${btnSuccess} Done! ${x} ${strong}${libName}${x} just left the camp"
+		br
 
-  exit 0
+		exit 0
 
-fi # End rmLib
+	fi # End rmLib
 
-# ---------------------------- #
-#  Update a local BashBox Lib  #
-# ---------------------------- #
+	# ---------------------------- #
+	#  Update a local BashBox Lib  #
+	# ---------------------------- #
 
-if [[ "$1" == "upLib" ]]; then # upLib
+	if [[ "$1" == "upLib" ]]; then # upLib
 
-  # Like in ${SCD}/lib/<libName>
-  libName="$2"
+		# Like in ${SCD}/lib/<libName>
+		libName="$2"
 
-  # Warning if Directory not found
-  if [[ ! -d "${SCD}/lib/${libName}" ]]; then
-    br
-    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
-    br
+		# Warning if Directory not found
+		if [[ ! -d "${SCD}/lib/${libName}" ]]; then
+			br
+			p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
+			br
 
-    exit 1
-  fi
+			exit 1
+		fi
 
-  #
-  #   --- Output ---
-  #
+		#
+		#   --- Output ---
+		#
 
-  confirm "Do you want to update ${libName}?"
+		confirm "Do you want to update ${libName}?"
 
-  br
-  h2 " No problem, let's go..."
-  br
+		br
+		h2 " No problem, let's go..."
+		br
 
-  # Get inside
-  p "- Moving into the Directory"
-  cd "${SCD}/lib/${libName}" || return
+		# Get inside
+		p "- Moving into the Directory"
+		cd "${SCD}/lib/${libName}" || return
 
-  # Pull
-  branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
-  p "- Reset from origin/${branch}"
-  br
-  git fetch origin "$branch"
+		# Pull
+		branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
+		p "- Reset from origin/${branch}"
+		br
+		git fetch origin "$branch"
 
-  if git reset --hard origin/"$branch"; then
-    br
-    p "${btnSuccess} Done! ${x} ${libName} is updated."
-    br
-  else
-    br
-    p "${btnWarning} Oops! ${x} Command exited with code ${?}"
-    br
-  fi
+		if git reset --hard origin/"$branch"; then
+			br
+			p "${btnSuccess} Done! ${x} ${libName} is updated."
+			br
+		else
+			br
+			p "${btnWarning} Oops! ${x} Command exited with code ${?}"
+			br
+		fi
 
-fi # End upLib
+	fi # End upLib
 }
