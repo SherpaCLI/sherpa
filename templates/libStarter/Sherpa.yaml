@@ -1,4 +1,20 @@
+# Sherpa.yaml - the manifest of this Lib.
+#
+# A Lib is sourced with `use "collection/name"` and exports functions,
+# it has no executable of its own. Prefix the exported functions with
+# the lib name (fmt_h1, not h1): the build is a single namespace, so a
+# generic name will eventually collide with another lib.
+
+sherpa: 1
+
 package:
   name: myLib
   version: 0.1.0
   repo: github.com/user/repo
+  type: localLib
+
+interface:
+  when: >-
+    Replace this line with the concrete situation where this library
+    is the right one to source.
+  provides: []

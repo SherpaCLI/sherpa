@@ -15,6 +15,10 @@
 # @see [](https://sherpa-cli.netlify.app/tools/docs-gen)
 
 
+# Routed by src/router.sh
+
+cmd_doc() {
+
 if [[ "$1" == "doc" || "$1" == "d" ]]; then # Shdoc
 
   # A Sherpa.yaml file bust be present in the directory
@@ -53,3 +57,4 @@ if [[ "$1" == "doc" || "$1" == "d" ]]; then # Shdoc
   p "${btnSuccess} Done! ${x} Check the ${em}docs/${x} folder"
   br
 fi # End Doc
+}

@@ -1,34 +1,26 @@
 # Build
 
-Create the script from partials, generate docs, optimize.
+Create the script from partials, generate docs, link it
 
 ## Overview
 
-To be used from the root of a Sherpa project,
-created with "sherpa new myProject".
+To be used from the root of a BashBox, created with
+"sherpa new myProject".
 
 It will:
-
-* Generate a list of paths to be combined
-* Extract paths from `use "collection/lib"` in bin.sh
-* Put every partials together in a single file
-* Generates docs from the shdoc comments
-* Remove all full line comments
-* Remove all empty lines
-* Remove leading and trailing spaces
-* Add the /usr/bin/env shebang
-* Place the resulted script in target/local
+* Generate the list of partials to combine
+* Extract the paths from `use "collection/lib"` in src/bin.sh
+* Put every partial together into a single file
+* Generate the docs from the shdoc comments
+* Add the /usr/bin/env bash shebang
+* Place the result in target/local
 * Make it executable
-* Symlnk it to ~/.sherpa/bin for global availability
+* Symlink it into the bin directory for global availability
 
-Usage: sherpa b, build
+Minification is opt-in (--minify). It used to be the default and
+it is destructive: it removes '#' inside heredocs and strings and
+flattens meaningful indentation. A readable build is a feature.
 
-
-**Next: Flags to diferenciate build type**
-
-Usage: sherpa b -t "lib"
-
-- bin: Default. Creating an executable
-- lib: Raw .sh files for fn() libraries
+Usage: sherpa b, build [--minify]
 
 

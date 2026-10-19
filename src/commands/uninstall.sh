@@ -11,6 +11,10 @@
 # ------------------------ #
 
 # Delete a local BashBox
+# Routed by src/router.sh
+
+cmd_uninstall() {
+
 if [[ "$1" == "uninstall" ]]; then # Uninstall
 
   # Shift the first argument so we can process flags
@@ -154,3 +158,4 @@ if [[ "$1" == "uninstall" ]]; then # Uninstall
   fi # end We Have A Name
 
 fi # end Uninstall
+}

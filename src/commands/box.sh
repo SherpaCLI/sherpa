@@ -11,6 +11,10 @@
 #  Local BashBox Infos     #
 # ------------------------ #
 
+# Routed by src/router.sh: localBox, rmBox, rmLib, upLib
+
+cmd_box() {
+
 if [[ "$1" == "localBox" ]]; then # localBox
 
   # Like in ${SCD}/boxes/<boxName>
@@ -195,3 +199,4 @@ if [[ "$1" == "upLib" ]]; then # upLib
   fi
 
 fi # End upLib
+}

@@ -37,190 +37,195 @@ regDir="${SCD}/registers"
 bbrBin="${regDir}/bbrBin.yaml"
 bbrLib="${regDir}/bbrLib.yaml"
 
-if [[ "$1" == "install" ]]; then # Start Route
+# Routed by src/router.sh
 
-  # Shift the first argument so we can process flags
-  shift
+cmd_install() {
 
-  # The name of the BashBox to be installed
-  name=""
-  # Optional way to enforece the type of BB
-  # the type 'exe' are built, the 'lib' symlinked
-  type="bin"
-  # Direct url to a BashBox repository
-  url=""
+	if [[ "$1" == "install" ]]; then # Start Route
 
-  while getopts "n:t:u:" opt; do
-    case $opt in
-    n) name=${OPTARG} ;;
-    t) type=${OPTARG} ;;
-    u) url=${OPTARG} ;;
-    *) echo "Invalid flag" ;;
-    esac
-  done
+		# Shift the first argument so we can process flags
+		shift
 
-  # Check directories existance, and create if not
-  # [[ ! -d "${SCD}/bbr" ]] && mkdir "${SCD}/bbr"
-  # [[ ! -d "${SCD}/bbr/bin" ]] && mkdir "${SCD}/bbr/bin"
-  # [[ ! -d "${SCD}/bbr/lib" ]] && mkdir "${SCD}/bbr/lib"
+		# The name of the BashBox to be installed
+		name=""
+		# Optional way to enforece the type of BB
+		# the type 'exe' are built, the 'lib' symlinked
+		type="bin"
+		# Direct url to a BashBox repository
+		url=""
 
-  # A second argument is needed
-  # ...the project's name/folder.
-  if [[ $# == 0 ]]; then
-    br
-    h1 "Install a BashBox from Git"
-    hr "+" "-"
-    p "Usage: ${em}sherpa install foobar${x} ...not yet implemented"
-    p "   or: ${em}sherpa install -n \"name\" -t \"bin\" -u \"url-to-repository\" ${x}"
-    br
-    p "If part of the BashBoxRegistry, the name is enough."
-    p "If not, a full url to the repository is expected, with following flags:"
-    p "-n name: Project's name... n=\"projName\""
-    p "-t type: Either bin or lib"
-    p "-u  url: Full url to the repository"
+		while getopts "n:t:u:" opt; do
+			case $opt in
+			n) name=${OPTARG} ;;
+			t) type=${OPTARG} ;;
+			u) url=${OPTARG} ;;
+			*) echo "Invalid flag" ;;
+			esac
+		done
 
-    exit 1
-  fi
+		# Check directories existance, and create if not
+		# [[ ! -d "${SCD}/bbr" ]] && mkdir "${SCD}/bbr"
+		# [[ ! -d "${SCD}/bbr/bin" ]] && mkdir "${SCD}/bbr/bin"
+		# [[ ! -d "${SCD}/bbr/lib" ]] && mkdir "${SCD}/bbr/lib"
 
-  # A repo url was provided
-  # let's install that BashBox
-  if [[ -n $url ]]; then # ifUrl
+		# A second argument is needed
+		# ...the project's name/folder.
+		if [[ $# == 0 ]]; then
+			br
+			h1 "Install a BashBox from Git"
+			hr "+" "-"
+			p "Usage: ${em}sherpa install foobar${x} ...not yet implemented"
+			p "   or: ${em}sherpa install -n \"name\" -t \"bin\" -u \"url-to-repository\" ${x}"
+			br
+			p "If part of the BashBoxRegistry, the name is enough."
+			p "If not, a full url to the repository is expected, with following flags:"
+			p "-n name: Project's name... n=\"projName\""
+			p "-t type: Either bin or lib"
+			p "-u  url: Full url to the repository"
 
-    p "name: $name"
-    p "type: $type"
-    p "url: $url"
-    br
+			exit 1
+		fi
 
-    # TODO: Check if the url is a real one
+		# A repo url was provided
+		# let's install that BashBox
+		if [[ -n $url ]]; then # ifUrl
 
-    if [[ -z $type ]]; then # typeCheck
-      p "If the -u flag is used, -t must be also set."
-      p "The -t flag must be either -t='bin' or -t='lib'"
-      exit 1
-    elif [[ $type != "bin" && $type != "lib" ]]; then
-      p "The -t flag must be either -t='bin' or -t='lib'"
-    fi # End typeCheck
+			p "name: $name"
+			p "type: $type"
+			p "url: $url"
+			br
 
-    # Install a BB executable
-    # - Clone the repo in ${SCD}/bbr/bin/repoName
-    # - cd ${SCD}/bbr/bin/repoName
-    # - sherpa build
-    if [[ $type = "bin" ]]; then # installBin
+			# TODO: Check if the url is a real one
 
-      if [[ -z "$name" ]]; then
-        p "The name can't be empty"
-        p "use: sherpa install -n \"name\" -t \"bin\" -u \"repoUrl\""
-        exit 1
-      fi
+			if [[ -z $type ]]; then # typeCheck
+				p "If the -u flag is used, -t must be also set."
+				p "The -t flag must be either -t='bin' or -t='lib'"
+				exit 1
+			elif [[ $type != "bin" && $type != "lib" ]]; then
+				p "The -t flag must be either -t='bin' or -t='lib'"
+			fi # End typeCheck
 
-      # Check if an omonyme directory exists
-      # if not, clone the repo with that name
-      if [[ -d "${SCD}/bbr/bin/${name}" ]]; then # isDirAlready
-        br
-        p "Ooops! A ${name} directory already exists."
-        em "Pick another name."
-        br
-        exit 1
-      else
-        git clone "$url" "${SCD}/bbr/bin/${name}"
-        cd "${SCD}/bbr/bin/${name}" || return
-      fi # End isDirAlready
+			# Install a BB executable
+			# - Clone the repo in ${SCD}/bbr/bin/repoName
+			# - cd ${SCD}/bbr/bin/repoName
+			# - sherpa build
+			if [[ $type = "bin" ]]; then # installBin
 
-      # Data from the Cloned repository & args
-      bbName="${name}"
-      bbRepo="${url}"
-      bbDir="${SCD}/bbr/bin/${name}"
-      bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
-      binReg="${SCD}/registers/bbrBin.yaml"
-      globalsFile="${bbDir}/src/_globals.sh"
+				if [[ -z "$name" ]]; then
+					p "The name can't be empty"
+					p "use: sherpa install -n \"name\" -t \"bin\" -u \"repoUrl\""
+					exit 1
+				fi
 
-      # Check if the repo is already installed
-      if yq "any(* | select(.repo == ${bbRepo}))" "${binReg}"; then # isInstalled
-        br
-        p "Oops. That BashBox is already installed."
-        br
-        exit 1
-      else                                      # actual Install
-        if [[ -L "${SDD}/bin/${bbExe}" ]]; then # isLinkAlready
-          p "Ooops. A bin/${bbExe} symlink exists."
-          p "Change the value in Sherpa.yaml, then build the Script."
-          exit 1
-        else
-          # sherpa build
-          # If the Install was a success, log it
-          if sherpa build; then # Log
-            # Prepare data for the Register entry
+				# Check if an omonyme directory exists
+				# if not, clone the repo with that name
+				if [[ -d "${SCD}/bbr/bin/${name}" ]]; then # isDirAlready
+					br
+					p "Ooops! A ${name} directory already exists."
+					em "Pick another name."
+					br
+					exit 1
+				else
+					git clone "$url" "${SCD}/bbr/bin/${name}"
+					cd "${SCD}/bbr/bin/${name}" || return
+				fi # End isDirAlready
 
-            # Update the ROOT value in src/_globals.sh
-            # & Sherpa.yaml
-            sed -i '/^readonly ROOT/d' "$globalsFile"
-            echo "readonly ROOT=\"$bbDir\"" >>"$globalsFile"
-            update_yaml_item "package.root" "$bbDir" "${bbDir}/Sherpa.yaml"
+				# Data from the Cloned repository & args
+				bbName="${name}"
+				bbRepo="${url}"
+				bbDir="${SCD}/bbr/bin/${name}"
+				bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
+				binReg="${SCD}/registers/bbrBin.yaml"
+				globalsFile="${bbDir}/src/_globals.sh"
 
-            # Save a log into the tests registers
-            # in ${SCD}/registers/tests.yaml
-            # 2025-jan-21: /path/to/tests/dir
-            add_yaml_parent "${bbName}" "${bbrBin}"
-            add_yaml_item "${bbName}.repo" "$bbRepo" "${bbrBin}"
-            add_yaml_item "${bbName}.root" "$bbDir" "${bbrBin}"
-            add_yaml_item "${bbName}.exe" "$bbExe" "${bbrBin}"
-            add_yaml_item "${bbName}.type" "bbr" "${bbrBin}"
-            add_yaml_item "${bbName}.origin" "git" "${bbrBin}" # bbr / git / local
-          fi                                                   # End Log
-        fi                                                     # End isLinkAlready
-      fi                                                       # End isInstalled
+				# Check if the repo is already installed
+				if yq "any(* | select(.repo == ${bbRepo}))" "${binReg}"; then # isInstalled
+					br
+					p "Oops. That BashBox is already installed."
+					br
+					exit 1
+				else                                     # actual Install
+					if [[ -L "${SDD}/bin/${bbExe}" ]]; then # isLinkAlready
+						p "Ooops. A bin/${bbExe} symlink exists."
+						p "Change the value in Sherpa.yaml, then build the Script."
+						exit 1
+					else
+						# sherpa build
+						# If the Install was a success, log it
+						if sherpa build; then # Log
+							# Prepare data for the Register entry
 
-    fi # End installBin
+							# Update the ROOT value in src/_globals.sh
+							# & Sherpa.yaml
+							sed_inplace "$globalsFile" '/^readonly ROOT/d'
+							echo "readonly ROOT=\"$bbDir\"" >>"$globalsFile"
+							update_yaml_item "package.root" "$bbDir" "${bbDir}/Sherpa.yaml"
 
-    #
-    #  This part will be the
-    #  sherpa add -u "prepoUrl"
-    #
+							# Save a log into the tests registers
+							# in ${SCD}/registers/tests.yaml
+							# 2025-jan-21: /path/to/tests/dir
+							add_yaml_parent "${bbName}" "${bbrBin}"
+							add_yaml_item "${bbName}.repo" "$bbRepo" "${bbrBin}"
+							add_yaml_item "${bbName}.root" "$bbDir" "${bbrBin}"
+							add_yaml_item "${bbName}.exe" "$bbExe" "${bbrBin}"
+							add_yaml_item "${bbName}.type" "bbr" "${bbrBin}"
+							add_yaml_item "${bbName}.origin" "git" "${bbrBin}" # bbr / git / local
+						fi                                                  # End Log
+					fi                                                   # End isLinkAlready
+				fi                                                    # End isInstalled
 
-    # Install a BB library
-    # - Clone the repo in ${SCD}/bbr/lib/bbName
-    # - Symlink that dir to {SCD}/lib/bbName
-    # - Use with: use "bbName/someFileInside"
-    if [[ $type = "lib" ]]; then # installLib
+			fi # End installBin
 
-      p "- Getting the code..."
-      git clone "$url" "${SCD}/bbr/lib/${name}"
-      br
+			#
+			#  This part will be the
+			#  sherpa add -u "prepoUrl"
+			#
 
-      target="${SCD}/bbr/lib/${name}"
-      symlink="${SCD}/lib/${name}"
+			# Install a BB library
+			# - Clone the repo in ${SCD}/bbr/lib/bbName
+			# - Symlink that dir to {SCD}/lib/bbName
+			# - Use with: use "bbName/someFileInside"
+			if [[ $type = "lib" ]]; then # installLib
 
-      # Creating a symlink
-      p "- Creating a symlink into ${SCD}/lib"
-      ln -s "${target}" "${symlink}"
+				p "- Getting the code..."
+				git clone "$url" "${SCD}/bbr/lib/${name}"
+				br
 
-      # If Install is a Success, log it
-      if ln -s "$target" "${symlink}"; then # Log
-        # Prepare data for the Register entry
-        bbName="${name}"
-        bbDir="${SCD}/bbr/lib/${name}"
-        libReg="${SCD}/registers/bbrLib.yaml"
+				target="${SCD}/bbr/lib/${name}"
+				symlink="${SCD}/lib/${name}"
 
-        # Save a log into the tests registers
-        # in ${SCD}/registers/tests.yaml
-        # 2025-jan-21: /path/to/tests/dir
-        add_yaml_parent "${bbName}" "${bbrLib}"
-        add_yaml_item "${bbName}.root" "$bbDir" "$libReg"
-        add_yaml_item "${bbName}.repo" "$url" "$libReg"
-        add_yaml_item "${bbName}.type" "bbr" "$libReg"
-      fi # End Log
+				# Creating a symlink
+				p "- Creating a symlink into ${SCD}/lib"
+				ln -s "${target}" "${symlink}"
 
-      br
-      p "${btnSuccess} Done! ${x} new Library available."
-      br
+				# If Install is a Success, log it
+				if ln -s "$target" "${symlink}"; then # Log
+					# Prepare data for the Register entry
+					bbName="${name}"
+					bbDir="${SCD}/bbr/lib/${name}"
+					libReg="${SCD}/registers/bbrLib.yaml"
 
-    fi #End installLib
+					# Save a log into the tests registers
+					# in ${SCD}/registers/tests.yaml
+					# 2025-jan-21: /path/to/tests/dir
+					add_yaml_parent "${bbName}" "${bbrLib}"
+					add_yaml_item "${bbName}.root" "$bbDir" "$libReg"
+					add_yaml_item "${bbName}.repo" "$url" "$libReg"
+					add_yaml_item "${bbName}.type" "bbr" "$libReg"
+				fi # End Log
 
-  fi # End ifUrl
+				br
+				p "${btnSuccess} Done! ${x} new Library available."
+				br
 
-  # if [[ -n $2 ]]; then # from BashBoxRegistry
-  #   # bashbox=$2
-  #   p "Arg no2: ${2}"
-  # fi #End from BashBoxRegistry
+			fi #End installLib
 
-fi # End Route
+		fi # End ifUrl
+
+		# if [[ -n $2 ]]; then # from BashBoxRegistry
+		#   # bashbox=$2
+		#   p "Arg no2: ${2}"
+		# fi #End from BashBoxRegistry
+
+	fi # End Route
+}

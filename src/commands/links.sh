@@ -1,5 +1,5 @@
 # @file Links
-# @brief Display the symlinks in .sherpa/bin and their target
+# @brief Display the symlinks in the bin directory and their target
 #
 # @description
 #    To be used from anywhere.
@@ -11,14 +11,12 @@
 #  Usage: sherpa links
 #
 
-#;
-# [links:rt] Links
-# calls symlinks_list() from tent/symlinks.sh
-#"
-if [[ "$1" == "links" ]]; then
-  br
-  h2 "Symlinks"
-  # Display avaible links in ~/.sherpa/bin
-  symlinks_list
-  br
-fi
+cmd_links() {
+	br
+	h2 "Symlinks"
+	# Display available links in the bin directory
+	symlinks_list
+	br
+
+	return 0
+}

@@ -15,6 +15,10 @@
 #
 # @see [shdoc](https://github.com/reconquest/shdoc).
 
+# Routed by src/router.sh
+
+cmd_bashdoc() {
+
 if [[ "$1" == "bashdoc" ]]; then # Bashdoc
 
   if [[ ! -f Sherpa.yaml ]]; then
@@ -43,3 +47,4 @@ if [[ "$1" == "bashdoc" ]]; then # Bashdoc
   done
 
 fi # End Bashdoc
+}

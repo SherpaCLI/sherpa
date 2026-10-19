@@ -9,6 +9,10 @@
 #  Updating a BashBox      #
 # ------------------------ #
 
+# Routed by src/router.sh
+
+cmd_update() {
+
 if [[ "$1" == "update" ]]; then # update
 
   # Like in ${SCD}/boxes/<boxName>
@@ -49,3 +53,4 @@ if [[ "$1" == "update" ]]; then # update
   br
 
 fi # End update
+}

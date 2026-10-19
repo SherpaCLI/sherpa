@@ -9,6 +9,10 @@
 #  Watch for changes and ReBuild  #
 # ------------------------------- #
 
+# Routed by src/router.sh
+
+cmd_watch() {
+
 if [[ "$1" == "watch" || "$1" == "w" ]]; then # watch
 
   if [[ ! -f "Sherpa.yaml" ]]; then
@@ -19,3 +23,4 @@ if [[ "$1" == "watch" || "$1" == "w" ]]; then # watch
   watchexec -c -w ./src -w ./data -- sherpa build
 
 fi # End watch
+}

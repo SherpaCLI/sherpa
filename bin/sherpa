@@ -1,138 +1,264 @@
 #!/usr/bin/env bash
-readonly SDD="$HOME/.sherpa" # Sherpa Dot-Dir
-readonly SCD="$HOME/sherpa"  # Sherpa Custom-Dir
-readonly EDITOR="vim"        # Default Editor
-readonly BIN="${SDD}/bin"    # Default Editor
+#!/usr/bin/env bash
+
+# ----------=+=---------- #
+#    Sh:erpa's Basecamp   #
+# ----------------------- #
+
+# -------------- #
+#    Constants   #
+# -------------- #
+
+# Paths are overridable, so a dev checkout or a temporary
+# sandbox can be used without touching the real installation.
+readonly SDD="${SHERPA_DOT_DIR:-$HOME/.sherpa}"    # Sherpa Dot-Dir
+readonly SCD="${SHERPA_CUSTOM_DIR:-$HOME/sherpa}"  # Sherpa Custom-Dir
+readonly BIN="${SDD}/bin"                          # Symlinks and bundled tools
+readonly EDITOR="${SHERPA_EDITOR:-${EDITOR:-vim}}" # Default Editor
+
+# TODO: More explicit documentation on set -eo pipefail
 set -eo pipefail
+
+# ------------------- #
+#      Functions      #
+# ------------------- #
+
+# Make sure the custom directory exists, seeded from the template.
+# A fresh install has no ${SCD} until the first command that needs it,
+# which used to make `sherpa new` fail with a missing boxes/ directory.
+ensure_scd() {
+	[[ -d "${SCD}" ]] && return 0
+	[[ -d "${SDD}/templates/SCD" ]] || return 0
+
+	mkdir -p "$(dirname "${SCD}")" 2>/dev/null || return 0
+	cp -r "${SDD}/templates/SCD" "${SCD}" 2>/dev/null || return 0
+
+	return 0
+}
+
+# Portable in-place sed. GNU sed accepts `sed -i`, BSD sed (macOS)
+# insists on a backup suffix. The suffix form works on both.
+sed_inplace() {
+	local file="$1"
+	shift
+	sed -i.bak "$@" "$file" && rm -f "${file}.bak"
+}
+
+# Sourcing an additional lib into the script
 use() {
-local file="$1" # ex std/fmt
-local dotdir="${SDD}/lib"
-local custom="${SCD}/lib"
-if [ -f "${custom}/${file}.sh" ]; then
-source "${custom}/${file}.sh"
-elif [ -f "${dotdir}/${file}.sh" ]; then
-source "${dotdir}/${file}.sh"
-fi
+
+	local file="$1" # ex std/fmt
+	local dotdir="${SDD}/lib"
+	local custom="${SCD}/lib"
+
+	if [ -f "${custom}/${file}.sh" ]; then
+
+		source "${custom}/${file}.sh"
+
+	elif [ -f "${dotdir}/${file}.sh" ]; then
+
+		source "${dotdir}/${file}.sh"
+
+	fi
 }
+
+# Github/Codeberg CDN-like, sourcing distant lib.sh files
+# Default to Github, full url for anything else
 import() {
-local url=""
-local repo=""
-local branch="master"
-local file=""
-while getopts "u:r:b:f:" opt; do
-case $opt in
-u) url=$OPTARG ;;
-r) repo=$OPTARG ;;
-b) branch=$OPTARG ;;
-f) file=$OPTARG ;;
-*) echo "Invalid flag" ;;
-esac
-done
-if [[ $url != "" ]]; then
-. <(curl -s "$url")
-elif [[ $repo != "" ]]; then
-local fullUrl="https://raw.githubusercontent.com/${repo}/refs/heads/${branch}/${file}"
-. <(curl -s "$fullUrl")
-else
-echo "Opps. Something went wrong."
-exit 1
-fi
+	local url=""
+	local repo=""
+	local branch="master"
+	local file=""
+
+	while getopts "u:r:b:f:" opt; do
+		case $opt in
+		u) url=$OPTARG ;;
+		r) repo=$OPTARG ;;
+		b) branch=$OPTARG ;;
+		f) file=$OPTARG ;;
+		*) echo "Invalid flag" ;;
+		esac
+	done
+
+	if [[ $url != "" ]]; then
+		# Source the full url
+		. <(curl -s "$url")
+	elif [[ $repo != "" ]]; then
+		# https://raw.githubusercontent.com/labbots/bash-utility/refs/heads/master/src/date.sh
+		local fullUrl="https://raw.githubusercontent.com/${repo}/refs/heads/${branch}/${file}"
+		# Source resulting url
+		. <(curl -s "$fullUrl")
+	else
+		echo "Opps. Something went wrong."
+		exit 1
+	fi
+
 }
+
+# --- Some Helpers --- #
+
+# confirm "Do you want to continue with this operation?"
+# echo "Continuing with the script..."
 confirm() {
-br
-read -r -p "$1 (y/n): " answer
-if [[ ! $answer =~ ^[Yy]$ ]]; then
-br
-p "${btnWarning} Canceled ${x} Ok, got it."
-br
-exit 1
-fi
+	br
+	read -r -p "$1 (y/n): " answer
+	if [[ ! $answer =~ ^[Yy]$ ]]; then
+		br
+		p "${btnWarning} Canceled ${x} Ok, got it."
+		br
+
+		exit 1
+	fi
 }
+
+# ----- YAML Manipulation ------- #
+
+# Move those functions to tent/yaml.sh
+
 is_key() {
-local key=$1
-local file=$2
-yq e "has(\"$key\")" "$file" | grep -q "true"
+	local key=$1
+	local file=$2
+	yq e "has(\"$key\")" "$file" | grep -q "true"
 }
+
 add_yaml_parent() {
-local key="$1"
-local file="$2"
-yq eval ".$key = {}" -i "$file"
+	local key="$1"
+	local file="$2"
+
+	yq eval ".$key = {}" -i "$file"
 }
+
 add_yaml_item() {
-local key="$1"
-local value="$2"
-local file="$3"
-yq eval ".$key = \"$value\"" -i "$file"
+	local key="$1"
+	local value="$2"
+	local file="$3"
+
+	yq eval ".$key = \"$value\"" -i "$file"
 }
+
 get_yaml_item() {
-local key="$1"
-local file="$2"
-yq e ".$key" "$file"
+	local key="$1"
+	local file="$2"
+
+	yq e ".$key" "$file"
 }
+
 update_yaml_item() {
-local key="$1"
-local newValue="$2"
-local file="$3"
-yq -i ".$key = \"$newValue\"" "$file"
+	local key="$1"
+	local newValue="$2"
+	local file="$3"
+
+	yq -i ".$key = \"$newValue\"" "$file"
 }
+
 remove_yaml_item() {
-local key="$1"
-local file="$2"
-yq -i "del(.$key)" "$file"
+	local key="$1"
+	local file="$2"
+
+	yq -i "del(.$key)" "$file"
 }
+
 print_yaml_items() {
-local file="$1"
-yq eval "." "$file"
+	local file="$1"
+
+	yq eval "." "$file"
 }
+
+#
+#
+#     Get the Package data
+#    --- little helper ---
+#
+#
+
 package() {
-local key="$1"
-get_yaml_item "package.${key}" "${ROOT}/Sherpa.yaml"
+	local key="$1"
+	get_yaml_item "package.${key}" "${ROOT}/Sherpa.yaml"
 }
+
+#
+#     Get env data from ${SCD}/env.yaml
+#
 env() {
-local key="$1"
-local env_file="${SCD}/env.yaml"
-if [ -z "$key" ]; then
-p "${btnWarning} MissingKey! ${x} Usage: ${em}env \"<key>\"${x}"
-exit 1
-fi
-if [[ -n "$key" && ! $(is_key "$key" "${env_file}") ]]; then
-p "${btnWarning} Oops! ${x} $key is not a valid key in ${env_file}"
-exit 1
-fi
-get_yaml_item "${key}" "${env_file}"
+	local key="$1"
+	local env_file="${SCD}/env.yaml"
+
+	if [ -z "$key" ]; then
+		p "${btnWarning} MissingKey! ${x} Usage: ${em}env \"<key>\"${x}"
+		exit 1
+	fi
+
+	if [[ -n "$key" && ! $(is_key "$key" "${env_file}") ]]; then
+		p "${btnWarning} Oops! ${x} $key is not a valid key in ${env_file}"
+		exit 1
+	fi
+
+	get_yaml_item "${key}" "${env_file}"
 }
+
+#
+#
+#    CRUD the data from data/
+#     --- 11ty Inspired ---
+#
+#
+
 dataGet() {
-local file="$1"
-local key="$2"
-get_yaml_item "${key}" "${ROOT}/data/${file}.yaml"
+	local file="$1"
+	local key="$2"
+	get_yaml_item "${key}" "${ROOT}/data/${file}.yaml"
 }
+
 dataAdd() {
-local file="$1"
-local key="$2"
-local value="$3"
-add_yaml_item "${key}" "${value}" "${ROOT}/data/${file}.yaml"
+	local file="$1"
+	local key="$2"
+	local value="$3"
+	add_yaml_item "${key}" "${value}" "${ROOT}/data/${file}.yaml"
 }
+
 dataAddParent() {
-local file="$1"
-local key="$2"
-get_yaml_parent "${key}" "${ROOT}/data/${file}.yaml"
+	local file="$1"
+	local key="$2"
+	get_yaml_parent "${key}" "${ROOT}/data/${file}.yaml"
 }
+
 dataUpdate() {
-local file="$1"
-local key="$2"
-local value="$3"
-add_yaml_item "${key}" "${value}" "${ROOT}/data/${file}.yaml"
+	local file="$1"
+	local key="$2"
+	local value="$3"
+	add_yaml_item "${key}" "${value}" "${ROOT}/data/${file}.yaml"
 }
+
 dataDelete() {
-local file="$1"
-local key="$2"
-remove_yaml_item "${key}" "${ROOT}/data/${file}.yaml"
+	local file="$1"
+	local key="$2"
+	remove_yaml_item "${key}" "${ROOT}/data/${file}.yaml"
 }
+#!/usr/bin/env bash
+
+# ----------=+=---------- #
+#   Custom properties     #
+# ----------------------- #
+
+#
+# Basic font-style tags
+# p "Some ${strong}bold text${end} here."
+#
 strong="\033[1m"   # Make it Bold
 disabled="\033[2m" # Make it Dimmed
 em="\033[3m"       # Make it Italic
 u="\033[4m"        # Make it Underlined
+
+#
+# Ending the formating sequence
+# Sort of </closing> tag.
+#
 x="\033[0m" # Make it </end> but shorter
+
+#
+# Text Colors
+# p "Here some ${txtRed}red text${end}!"
+#
 txtBlack="\033[30m"   # .text-red
 txtRed="\033[31m"     # .text-red
 txtGreen="\033[32m"   # .text-green
@@ -141,6 +267,11 @@ txtBlue="\033[34m"    # .text-blue
 txtMagenta="\033[35m" # .text-magenta
 txtCyan="\033[36m"    # .text-cyan
 txtWhite="\033[37m"   # .text-white
+
+#
+# Background Colors
+# p "${bgGreen}Success!${end} You made it."
+#
 bgBlack="\033[40m"     # .bg-black
 bgRed="\033[41m"       # .bg-red
 bgGreen="\033[42m"     # .bg-green
@@ -149,1099 +280,2540 @@ bgBlue="\033[44m"      # .bg-blue
 bgMagenta="\033[45m"   # .bg-magenta
 bgCyan="\033[46m"      # .bg-cyan
 bgLightGray="\033[37m" # .bg-lightGray
+
+#
+#  NerdFont Icons
+#  - For personnal use to avoid portability hell.
+#  Do it in your own scripts, see what's working.
+#
 icoLeaf="\ue22f"
 icoDocker="\uf21f"
+
+#
+# Setting the txtPrimary to the user defined color
+#
+
+# TODO: Get the value from the yaml
+#       or set it to Green
+#primaryColor="Green"
+
+# Chech if a string is a valid Color
 is_color() {
-local color="$1"
-local valid_colors=("Black" "Red" "Green" "Yellow" "Blue" "Magenta" "Cyan" "White")
-for valid_color in "${valid_colors[@]}"; do
-if [ "$color" = "$valid_color" ]; then
-return 0
-fi
-done
-return 1
+	local color="$1"
+	local valid_colors=("Black" "Red" "Green" "Yellow" "Blue" "Magenta" "Cyan" "White")
+
+	for valid_color in "${valid_colors[@]}"; do
+		if [ "$color" = "$valid_color" ]; then
+			return 0
+		fi
+	done
+
+	return 1
 }
+
+# Custom Primary Color for all Projects.
+# The config file is optional: a fresh install has no ${SCD}/Sherpa.yaml
+# yet, and reading it unconditionally made yq fail on every command.
 scdYaml="${SCD}/Sherpa.yaml"
-customColor="$(get_yaml_item "primaryColor" "$scdYaml")"
-if is_color "$mainColor"; then
-primaryColor="$mainColor"
-elif is_color "$customColor"; then
-primaryColor="$customColor"
-else
-primaryColor="Green"
+customColor=""
+if [[ -f "$scdYaml" ]]; then
+	customColor="$(get_yaml_item "primaryColor" "$scdYaml" 2>/dev/null || true)"
+	[[ "$customColor" == "null" ]] && customColor=""
 fi
+# Per project primaryColor:
+# define something like mainColor="Magenta"
+# before calling: use "std/fmt"
+
+if is_color "$mainColor"; then
+	primaryColor="$mainColor"
+elif is_color "$customColor"; then
+	primaryColor="$customColor"
+else
+	primaryColor="Green"
+fi
+
 case $primaryColor in
 Black)
-txtPrimary=${txtBlack}
-;;
+	txtPrimary=${txtBlack}
+	;;
 Red)
-txtPrimary=${txtRed}
-;;
+	txtPrimary=${txtRed}
+	;;
 Green)
-txtPrimary=${txtGreen}
-;;
+	txtPrimary=${txtGreen}
+	;;
 Yellow)
-txtPrimary=${txtYellow}
-;;
+	txtPrimary=${txtYellow}
+	;;
 Blue)
-txtPrimary=${txtBlue}
-;;
+	txtPrimary=${txtBlue}
+	;;
 Magenta)
-txtPrimary=${txtMagenta}
-;;
+	txtPrimary=${txtMagenta}
+	;;
 Cyan)
-txtPrimary=${txtCyan}
-;;
+	txtPrimary=${txtCyan}
+	;;
 White)
-txtPrimary=${txtWhite}
-;;
+	txtPrimary=${txtWhite}
+	;;
 *)
-txtPrimary=""
-;;
+	txtPrimary=""
+	;;
 esac
+
+# ----------=+=---------- #
+#   Minimal Styling       #
+# ----------------------- #
+
+# Sort of CSS classes
+# Usage exemple:
+# p "${btnSuccess} Yes! ${x} You did it."
+
+# shellcheck disable=SC2034
 export btnSuccess="${bgGreen}${txtBlack}"
 export btnWarning="${bgYellow}${txtBlack}"
 export btnDanger="${bgRed}${txtWhite}"
+
+# shellcheck disable=SC2034
 export link="${u}${em}${txtBlue}"
+
+# shellcheck disable=SC2034
+export txtDanger="${txtRed}"
+
+# Terminal width, with a fallback when no TTY is attached
+# (pipes, CI, `sherpa build | tee log`). Without the fallback a
+# failing `tput` under `set -e` would abort the whole script.
+term_cols() {
+	local cols
+	cols="$(tput cols 2>/dev/null)" || cols=""
+	[[ -z "$cols" ]] && cols="${COLUMNS:-80}"
+	printf "%s" "$cols"
+}
+
+# Just that. Some raw centered text.
+# It substracts the lenth of the text
+# from the total available columns,
+# center it and fill the rest w/ spaces.
+# https://gist.github.com/TrinityCoder/911059c83e5f7a351b785921cf7ecdaa
 text-center() {
-local -i TERM_COLS
-local -i str_len
-local -i filler_len
-local filler
-TERM_COLS=$(tput cols)
-str_len=${#1}
-filler_len=$(((TERM_COLS - str_len) / 2))
-filler=$(printf '%*s' "$filler_len" '' | tr ' ' ' ')
-printf "%s%s\n" "$filler" "$1"
+
+	# Declare typed variables
+	local -i TERM_COLS
+	local -i str_len
+	local -i filler_len
+	local filler
+
+	TERM_COLS=$(term_cols)
+	str_len=${#1}
+	filler_len=$(((TERM_COLS - str_len) / 2))
+	filler=$(printf '%*s' "$filler_len" '' | tr ' ' ' ')
+	printf "%s%s\n" "$filler" "$1"
 }
+
+# ----------=+=---------- #
+#   Utility Functions     #
+# ----------------------- #
+
+# Fetching API and query the JSON results with jq
+
+# weather="https://api.weatherapi.com/v1/current.json?key=xxxHereTheKeyxxx&q=London&aqi=no"
+# ---
+# h1 "$(fetch $weather | jq .location.name)"
+# p "Temp: $(fetch $weather | jq .current.temp_c) °C"
 fetch() {
-local endpoint="$1"
-local response
-response=$(curl -s -X GET "$endpoint")
-echo "$response"
+	local endpoint="$1"
+	local response
+
+	response=$(curl -s -X GET "$endpoint")
+	echo "$response"
 }
+
+# ----------------=+=---------------- #
+#   Semantic formating & Styling      #
+# ----------------------------------- #
+
+# H1 Heading.
+# font-weight:bold;color:var(--txtPrimary);display:block
+# h1 "Awesome bold and colorful title"
 h1() {
-printf "\n%b%b%s%b\n" "$strong" "$txtPrimary" "$1" "$x"
+	printf "\n%b%b%s%b\n" "$strong" "$txtPrimary" "$1" "$x"
 }
+
+# H2 Heading.
+# display:block;font-weight:normal;color:var(--primaryColor)
 h2() {
-printf "%b%s%b\n" "$txtPrimary" "$1" "$x"
+	printf "%b%s%b\n" "$txtPrimary" "$1" "$x"
 }
+
+# H3 Heading.
+# color:var(--primaryColor);font-style:italic;display:block
 h3() {
-printf "%b%b%s%b\n" "$txtPrimary" "$em" "$1" "$x"
+	printf "%b%b%s%b\n" "$txtPrimary" "$em" "$1" "$x"
 }
+
+# A line of text, aka <p> paragraph
+# Got a line break like a block element
 p() {
-echo -e " $1"
+	echo -e " $1"
 }
+
+# Some inline text, with no linebreak
+# span "Hi, say something: "
+# reads answer
+# p "${answer}? Good to know."
 span() {
-printf "%s" "$1"
+	printf "%s" "$1"
 }
+
+# A line break emulating <br>
+# Additional spacing when needed
+# avoid placing empty: echo ""
+# some semantics never hurts.
 br() {
-printf "\n"
+	printf "\n"
 }
+
+# The <em> empthase, for Italic text
+# no default linebreak
 em() {
-printf "%b%s%b" "$em" "$1" "$x"
+	printf "%b%s%b" "$em" "$1" "$x"
 }
+
+# Making text turn Bold!
 strong() {
-printf "%b%s%b" "$strong" "$1" "$x"
+	printf "%b%s%b" "$strong" "$1" "$x"
 }
+
+# A simple <hr> HorizontalLine for separation
+# Takes 2 arguments, The center character + fillers
+# hr "+" "-" will fill the console with:
+# --------+--------
 hr() {
-[[ $# == 0 ]] && return 1
-declare -i TERM_COLS
-declare -i str_len
-TERM_COLS="$(tput cols)"
-str_len="((${#1} + 2))"
-[[ $str_len -ge $TERM_COLS ]] && {
-echo "$1"
-return 0
+	[[ $# == 0 ]] && return 1
+
+	# Declare typed vars
+	declare -i TERM_COLS
+	declare -i str_len
+
+	TERM_COLS="$(term_cols)"
+	str_len="((${#1} + 2))"
+	[[ $str_len -ge $TERM_COLS ]] && {
+		echo "$1"
+		return 0
+	}
+
+	declare -i filler_len="$(((TERM_COLS - str_len) / 2))"
+	[[ $# -ge 2 ]] && ch="${2:0:1}" || ch=" "
+	filler=""
+	for ((i = 0; i < filler_len; i++)); do
+		filler="${filler}${ch}"
+	done
+
+	printf "%s %s %s" "$filler" "$1" "$filler"
+	[[ $(((TERM_COLS - str_len) % 2)) -ne 0 ]] && printf "%s" "${ch}"
+	printf "\n"
+
+	return 0
 }
-declare -i filler_len="$(((TERM_COLS - str_len) / 2))"
-[[ $# -ge 2 ]] && ch="${2:0:1}" || ch=" "
-filler=""
-for ((i = 0; i < filler_len; i++)); do
-filler="${filler}${ch}"
-done
-printf "%s %s %s" "$filler" "$1" "$filler"
-[[ $(((TERM_COLS - str_len) % 2)) -ne 0 ]] && printf "%s" "${ch}"
-printf "\n"
-return 0
-}
+
+# Visually style a link, underlined, italic & blue.
 a() {
-echo -e "${u}${em}${txtBlue}$1${x}"
+	echo -e "${u}${em}${txtBlue}$1${x}"
 }
+
 flex-between() {
-left_text=$1
-right_text=$2
-width=$(tput cols)
-right_position=$((width - ${#right_text}))
-printf "%s%*s\n" "$left_text" $((right_position - ${#left_text})) ""
-printf "%s\n" "$right_text"
+	# Define your texts
+	left_text=$1
+	right_text=$2
+
+	# Get the width of the terminal
+	width=$(term_cols)
+
+	# Calculate the position for right text
+	right_position=$((width - ${#right_text}))
+
+	# Print the left text and spaces followed by the right text
+	printf "%s%*s\n" "$left_text" $((right_position - ${#left_text})) ""
+	printf "%s\n" "$right_text"
 }
+
+# -------------------------
+
+#
+# Old stuff
+# ...will be removed.
+#
 modify_value() {
-local key="$1"
-local new_value="$2"
-local filename="$3"
-sed -i -E "s/^(${key}\s*=\s*).*/\1${new_value}/" "$filename"
+	local key="$1"
+	local new_value="$2"
+	local filename="$3"
+
+	# Use sed to find the key and modify its value
+	sed_inplace "$filename" -E "s/^(${key}[[:space:]]*=[[:space:]]*).*/\1${new_value}/"
 }
+#!/usr/bin/env bash
+
+# All about files and folders manipulation
+
 hello_link() {
-echo
-echo "Hello from tent/symlink.sh"
-echo
+  echo
+  echo "Hello from tent/symlink.sh"
+  echo
 }
+
+#
+# --- Symlinks ---
+#
+
 _is_command() {
-local link_name=$1
-if command -v "$link_name" &> /dev/null; then
-echo "Error: A command with the name '$link_name' already exists."
-exit 1
-fi
+
+  local link_name=$1
+
+  # Check if the name is already a command
+  if command -v "$link_name" &> /dev/null; then
+      echo "Error: A command with the name '$link_name' already exists."
+      exit 1
+  fi
 }
+
 _sl_exists() {
-local target_dir=$1
-local link_name=$2
-if [ -L "$target_dir/$link_name" ]; then
-echo "Error: A symlink named '$link_name' already exists in $target_dir."
-exit 1
-fi
+
+  local target_dir=$1
+  local link_name=$2
+
+  # Check if a symlink already exists
+  if [ -L "$target_dir/$link_name" ]; then
+      echo "Error: A symlink named '$link_name' already exists in $target_dir."
+      exit 1
+  fi
+
 }
+
 _sl_create() {
-file_path=$1
-target_dir=$2
-link_name=$3
-ln -s "$file_path" "$target_dir/$link_name"
+
+  file_path=$1
+  target_dir=$2
+  link_name=$3
+
+  # Create the symlink
+  ln -s "$file_path" "$target_dir/$link_name"
 }
+
+# --- End Symlinks Helpers ------------------
+
 symlink_add() {
-local file_path=$1
-local target_dir=$2
-local link_name=$3
-local link=${target_dir}/${link_name}
-_sl_exists "$target_dir" "$link_name"
-_sl_create "$file_path" "$target_dir" "$link_name"
-if [[ $? == 0 ]]; then
-p "Symlink created successfully."
-else
-p "Error creating symlink."
-exit 1
-fi
+
+  local file_path=$1
+  local target_dir=$2
+  local link_name=$3
+  local link=${target_dir}/${link_name}
+
+  # Check if the name is already a command
+  #_is_command "$link_name"
+
+  # Check if a symlink already exists
+  _sl_exists "$target_dir" "$link_name"
+
+  # Create the symlink
+  _sl_create "$file_path" "$target_dir" "$link_name"
+
+  if [[ $? == 0 ]]; then
+      p "Symlink created successfully."
+  else
+      p "Error creating symlink."
+      exit 1
+  fi
 }
+
 symlink_remove() {
-link=$1
-rm -i $link
-[[ ! -L $link ]] && echo "'cause now I'm freeeee"
+
+  # TODO: Check if it exists, confirm, etc
+
+  link=$1
+
+  rm -i $link
+  [[ ! -L $link ]] && echo "'cause now I'm freeeee"
 }
+
 symlinks_list() {
-local dir="${1:-$HOME/.sherpa/bin}"
-while IFS= read -r -d '' file; do
-if [ -L "$file" ]; then
-echo "$(basename "$file") -> $(readlink -f "$file")"
-fi
-done < <(find "$dir" -type l -print0)
+    local dir="${1:-$HOME/.sherpa/bin}"
+
+    while IFS= read -r -d '' file; do
+        if [ -L "$file" ]; then
+            echo "$(basename "$file") -> $(readlink -f "$file")"
+        fi
+    done < <(find "$dir" -type l -print0)
 }
+
+# @file Router
+# @brief The single dispatch table: command word -> cmd_* function
+# @description
+#
+#	Every command lives in src/commands/<name>.sh and exposes a
+#	cmd_<name>() function. This router is the only place that maps a
+#	command word (or its alias) to that function, so:
+#
+#	  * the command list has one source of truth (see sherpa_commands)
+#	  * a typo is reported instead of silently doing nothing
+#	  * two files can no longer shadow each other's command
+#	  * each command gets a clean OPTIND, so its own flags parse
+#
+#	Concatenated before src/help/options.sh, so the help screen can
+#	read the same table. The entry point that calls sherpa_main lives
+#	in src/main.sh, concatenated last.
+#
+#	The cmd_* functions receive the command word as $1, exactly like
+#	the old straight-line `if [[ "$1" == "cmd" ]]` blocks did. That
+#	keeps each function's body untouched and makes aliases work.
+#
+#  Usage: (internal - see `sherpa help`)
+#
+
+# The command table: word|aliases|description
+# Consumed by the router, the help screen and `sherpa list`.
+sherpa_commands() {
+	cat <<'COMMAND_TABLE'
+home||The dashboard
+help|h|Show the usage message
+version|v|Show the Sh:erpa version
+new||Scaffold a new BashBox or Lib
+init||Scaffold a BashBox in the current directory
+build|b|Combine the partials, generate the docs, link the executable
+run|r|Build the package and run it
+watch|w|Rebuild on every save in src/ and data/
+doc|d|Generate the documentation only
+test|t|Run the tests with BashUnit
+compile||Compile the built script to a binary with SHC
+edit|e|Open a key file in $EDITOR
+links||List the symlinks in the bin directory
+list|ls,boxes|List the local BashBoxes and Libs, as text or --json
+localBox||Show the details of one local BashBox
+rmBox||Remove a local BashBox
+rmLib||Remove a local Lib
+upBox||Update an installed BashBox
+upLib||Update an installed Lib
+install||Install a BashBox or Lib from a git repository
+uninstall||Uninstall an installed BashBox or Lib
+update||Update an installed BashBox or Lib
+aliases||Edit the Aliases
+self-update||Update Sh:erpa itself
+self-test||Run Sh:erpa's own test suite
+COMMAND_TABLE
+}
+
+# Print the version from the manifest, tolerating the old flat schema.
+cmd_version() {
+	local version
+	version="$(get_yaml_item "package.version" "${SDD}/Sherpa.yaml" 2>/dev/null || true)"
+	if [[ "$version" == "null" || -z "$version" ]]; then
+		version="$(get_yaml_item "version" "${SDD}/Sherpa.yaml" 2>/dev/null || true)"
+	fi
+	printf "%s v%s\n" "Sh:erpa" "${version}"
+}
+
+sherpa_main() {
+	local cmd="${1:-}"
+
+	# Every command may touch the custom dir: make sure it is there
+	ensure_scd
+
+	case "$cmd" in
+	"" | home) cmd_home "$@" ;;
+	help | h) usage ;;
+	version | v) cmd_version ;;
+	new) cmd_new "$@" ;;
+	init) cmd_init "$@" ;;
+	build | b) cmd_build "$@" ;;
+	run | r) cmd_run "$@" ;;
+	watch | w) cmd_watch "$@" ;;
+	doc | d) cmd_doc "$@" ;;
+	test | t) cmd_test "$@" ;;
+	compile) cmd_compile "$@" ;;
+	edit | e) cmd_edit "$@" ;;
+	links) cmd_links "$@" ;;
+	list | ls | boxes) cmd_list "$@" ;;
+	localBox | rmBox | rmLib | upLib) cmd_box "$@" ;;
+	upBox) cmd_upBox "$@" ;;
+	aliases) cmd_aliases ;;
+	install) cmd_install "$@" ;;
+	uninstall) cmd_uninstall "$@" ;;
+	update) cmd_update "$@" ;;
+	self-update | self-test) cmd_self_update "$@" ;;
+	*)
+		br
+		p "${btnWarning} Oops! ${x} Unknown command: ${em}${cmd}${x}"
+		p "Try ${em}sherpa help${x} for the list of commands."
+		br
+		exit 1
+		;;
+	esac
+}
+# ------------------------------- #
+#   Options -flags with GetOpts   #
+# ------------------------------- #
+
+# @file Flags with GetOpts
+#
+# @description --- The Options file: src/help/options.sh ---
+#
+#	Parses the global flags, then shifts them away so $@ holds the
+#	command word and its arguments. The command table itself lives in
+#	src/router.sh and is the only place a command is declared.
+#
+#	To print text that will be ignored by -q || --quiet
+#	or something only printed if -v || --verbose
+#	[[ "$quiet" != "on" ]] && p "Normal log."
+#	[[ "$verb" == "on" ]] && p "Verbose log."
+#
+
+# Declaring variables from std/src used in this file.
 declare -g strong
 declare -g txtBlue
 declare -g txtGreen
 declare -g x
-color="" # String
-usage() {
-clear
-h1 " Welcome, I'm your Sh:erpa 👋"
-hr "sh:help" "-"
-br
-p "${strong}${txtBlue}Usage:${x}"" ${txtGreen}sherpa [option] <command> [arg]${x}"
-br
-p "${strong}${txtBlue}Options:${x}"
-echo "  -h | --help       Display the usage message."
-echo "  -v | --version    Display script Version."
-echo "  -V | --verbose    Enable Verbose mode."
-echo "  -q | --quiet      Continue force execution."
-br
-p "${strong}${txtBlue}Commands:${x}"
-p "  ${txtGreen}build${x}, ${txtGreen}b${x}    Compile the curent package"
-p "  ${txtGreen}doc${x}, ${txtGreen}d${x}      Build the package documentation"
-p "  ${txtGreen}edit${x}, ${txtGreen}e${x}     Open files in default Editor"
-p "  ${txtGreen}init${x}        Create package in existing dir"
-p "  ${txtGreen}links${x}        Show symlinks from .sherpa/bin"
-p "  ${txtGreen}new${x}         Create a new sherpa package"
-p "  ${txtGreen}run${x}, ${txtGreen}r${x}      Build and run a binary or script"
-p "  ${txtGreen}test${x}, ${txtGreen}t${x}     Run the tests from the tests dir"
-br
-p "For the detailed list, read the docs or come talk:"
-p "Docs&News: ${link}https://sherpa-cli.netlify.app${x}"
-p "Discord:   ${link}https://discord.gg/66bQJ6cuXG${x}"
-br
-}
-while getopts ":hvc:Vq-:" opt; do
-case $opt in
-h)
-usage
-exit 0
-;;
-v)
-printf "%s v%s\n" "Sh:erpa" "$(get_yaml_item "version" "${SDD}/Sherpa.yaml")"
-exit 0
-;;
-c)
-color=${OPTARG}
-;;
-V)
-verb="on"
-;;
-q)
-quiet="on"
-;;
--)
-case "${OPTARG}" in
-help)
-usage
-exit 0
-;;
-version)
-printf "%s v%s\n" "$SCRIPT_NAME" "$VERSION"
-[[ -n "$REPO" ]] && printf "Repo: %s\n" "$REPO"
-exit 0
-;;
-verbose)
-verb="on"
-;;
-quiet)
-quiet="on"
-;;
-*)
-echo "Unknown option --${OPTARG}" >&2
-exit 1
-;;
-esac
-;;
-\?)
-echo "Invalid option: -$OPTARG" >&2
-exit 1
-;;
-:)
-echo "Option -$OPTARG requires an argument." >&2
-exit 1
-;;
-esac
-done
-shift $((OPTIND - 1))
-[[ ! -d "$SCD" ]] && cp -r "${SDD}/templates/SCD" "${SCD}"
-localBoxes="${SCD}/registers/localBoxes.yaml"
-bbrBin="${SCD}/registers/bbrBin.yaml"
-if [[ "$#" == 0 ]]; then # Home Route
-clear
-h1 " Welcome to the Basecamp 👋"
-hr "Sh:erpa" "-"
-text-center "$(date "+%b %d - %H:%M")"
-mapfile -t boxes < <(find "${SCD}/boxes" -maxdepth 1 -type d -not -path "${SCD}/boxes" -printf '%f\n')
-boxes=("${boxes[@]%/}")
-p "${txtGreen}Local BashBoxes: ${em}executable${x}"
-if [[ -z "${boxes[*]}" ]]; then
-p "${btnWarning} Empty ${x} Try: ${em}sherpa new hello${x}"
-else
-for box in "${boxes[@]}"; do
-p "* ${txtBlue}$box${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/boxes/${box}/Sherpa.yaml")${x}"
-done
-fi
-br
-mapfile -t dirs < <(find "${SCD}/bbr/bin" -maxdepth 1 -type d -not -path "${SCD}/bbr/bin" -printf '%f\n')
-dirs=("${dirs[@]%/}")
-p "${txtGreen}Installed BashBoxes: ${em}executable${x}"
-if [[ -z "${dirs[*]}" ]]; then
-p "${btnWarning} Empty ${x} Install something. See the Docs."
-else
-for dir in "${dirs[@]}"; do
-p "* ${txtBlue}$dir${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/bbr/bin/${dir}/Sherpa.yaml")${x}"
-done
-fi
-br
-mapfile -t libs < <(find "${SCD}/lib" -maxdepth 1 -type d -not -path "${SCD}/lib" -printf '%f\n')
-libs=("${libs[@]%/}")
-h2 " Local Libraries"
-if [[ -z "${libs[*]}" ]]; then
-p "${btnWarning} Empty ${x} Create one. Check the Docs."
-else
-for lib in "${libs[@]}"; do
-p "* ${txtBlue}$lib${x}"
-done
-fi
-br
-mapfile -t dirs < <(find "${SCD}/bbr/lib" -maxdepth 1 -type d -not -path "${SCD}/bbr/lib" -printf '%f\n')
-dirs=("${dirs[@]%/}")
-h2 " Installed Libraries"
-if [[ -z "${dirs[*]}" ]]; then
-p "${btnWarning} Empty ${x} Install something. See the Docs."
-else
-for dir in "${dirs[@]}"; do
-p "* ${txtBlue}$dir${x}"
-done
-fi
-br
-h3 "Join us, the coffee is still warm."
-p "Docs: ${link}http://sherpa-cli.netlify.app${x}"
-p "Github: ${link}http://github.com/SherpaCLI${x}"
-p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
-br
-cd "${SDD}" || exit 1
-git fetch origin -q &>/dev/null
-if [ "$(git rev-list HEAD..origin/$(git branch --show-current) --count)" -gt 0 ]; then
-p ":: Update Available ::"
-fi
-fi # End Home Route
-if [[ "$1" == aliases ]]; then
-aliasman -e
-fi
-if [[ "$1" == "bashdoc" ]]; then # Bashdoc
-if [[ ! -f Sherpa.yaml ]]; then
-p "Opps. Probably not in a project root."
-exit 1
-fi
-SRC_DIR="src"
-DOCS_DIR="docs"
-HBS="${SDD}/templates/bashdoc.hbs"
-[[ ! -d "$DOCS_DIR" ]] && mkdir -p "$DOCS_DIR"
-for script in "$SRC_DIR"/*.sh; do
-if [[ -f "$script" ]]; then
-base_name=$(basename "$script" .sh)
-bashdoc -c -j -l "${DOCS_DIR}" -t "${HBS}" $script
-fi
-done
-fi # End Bashdoc
-if [[ "$1" == "compile" ]]; then # Compile
-executable="$(get_yaml_item "package.executable" Sherpa.yaml)"
-script="target/local/${executable}"
-scriptCopy="/tmp/${executable}-copy"
-if [[ ! -f "target/local/${executable}" ]]; then # IsFile
-p "${btnWarning} Oops! ${x} Run first: ${em}sherpa build${x}"
-exit 1
-else
-[[ ! -d "target/bin" ]] && mkdir target/bin
-cp "$script" "$scriptCopy"
-sed -i 's|#!/usr/bin/env bash|#!/bin/bash|g' "$scriptCopy"
-p "Compiling to Binary via SHC..."
-export CC=gcc
-shc -vrf "$scriptCopy" -o "target/bin/${executable}"
-if [[ "$?" == 0 ]]; then
-br
-p "${btnSuccess} Done! ${x} The binary is stored in target/bin"
-rm ${scriptCopy}
-br
-symlink="${SDD}/bin/${executable}"
-target=$(readlink -f "$symlink")
-if [[ "$target" != *"target/bin"* ]]; then
-rm "$symlink"
-ln -s "$(pwd)/target/bin/${executable}" "${SDD}/bin/${executable}"
-echo "Symlink updated successfully."
-else
-echo "bin/${executable} still Symlinked to ${SDD}/bin"
-fi
-else
-br
-p "Ooops! Command failed, with the ${?} exit code."
-br
-fi
-fi # End IsFile
-fi   # End Compile
-if [[ $1 == "edit" || $1 == "e" ]]; then # Edit
-fileToEdit=$2
-if [[ "$fileToEdit" == "bin" ]]; then # Options
-if [[ -f "src/bin.sh" ]]; then
-${EDITOR} src/bin.sh
-else
-br
-p "Oops. No src/bin.sh file from here."
-em "Make sure you are in a project root"
-br
-fi
-elif [[ "$fileToEdit" == "opt" ]]; then
-if [[ -f "src/_options.sh" ]]; then
-${EDITOR} src/_options.sh
-else
-br
-p "Oops. No src/_options.sh file from here."
-em "Make sure you are in a project root"
-br
-fi
-elif [[ "$fileToEdit" == "basecamp" ]]; then
-if [[ -f "${SDD}/basecamp.sh" ]]; then
-${EDITOR} "${SDD}/basecamp.sh"
-else
-br
-p "Oops. Can't reach the basecamp."
-em "Make sure Sherpa is corectly installed"
-br
-fi
-elif [[ "$fileToEdit" == "yaml" ]]; then
-if [[ -f "Sherpa.yaml" ]]; then
-${EDITOR} "Sherpa.yaml"
-else
-br
-p "Oops. Can't find the Sherpa.yaml file."
-em "Make sure you are in a project root"
-br
-fi
-fi # end Options
-fi   # end Edit
-if [[ "$1" == "localBox" ]]; then # localBox
-boxName="$2"
-if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
-br
-p "There is no ${txtBlue}${boxName}${x} directory in boxes/"
-br
-exit 1
-fi
-yaml="${SCD}/boxes/${boxName}/Sherpa.yaml"
-exe="$(get_yaml_item "package.executable" "$yaml")"
-clear
-h1 " ${boxName}"
-hr "BashBox" "-"
-p "- Root: ${SCD}/boxes/${boxName}"
-p "- Executable: ${em}${exe}${x}"
-br
-p "${txtDanger} Delete ${x} Usage: ${em}sherpa rmBox ${boxName}${x}"
-fi # End localBox
-if [[ "$1" == "rmBox" ]]; then # rmBox
-boxName="$2"
-if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
-br
-p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
-br
-exit 1
-fi
-root="${SCD}/boxes/${boxName}"
-exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
-link="${SDD}/bin/${exe}"
-localBoxes="${SCD}/registers/localBoxes.yaml"
-confirm "Do you really want to delete ${boxName}?"
-br
-h2 " Allright, let's clean a little..."
-br
-[[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
-p "- Removed symlink: ${em}${exe}${x}"
-rm -rf "$root"
-p "- Removed directory: ${em}${root}${x}"
-remove_yaml_item "$boxName" "$localBoxes"
-p "- Removed register entry: ${em}${boxName}${x}"
-br
-p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
-br
-exit 0
-fi # End rmBox
-if [[ "$1" == "rmLib" ]]; then # rmLib
-libName="$2"
-if [[ ! -d "${SCD}/lib/${libName}" ]]; then
-br
-p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
-br
-exit 1
-fi
-root="${SCD}/lib/${libName}"
-localLibs="${SCD}/registers/localLibs.yaml"
-confirm "Do you really want to delete ${libName}?"
-br
-h2 " Allright, let's clean a little..."
-br
-rm -rf "$root"
-p "- Removed directory: ${em}${root}${x}"
-remove_yaml_item "$libName" "$localLibs"
-p "- Removed register entry: ${em}${libName}${x}"
-br
-p "${btnSuccess} Done! ${x} ${strong}${libName}${x} just left the camp"
-br
-exit 0
-fi # End rmLib
-if [[ "$1" == "upLib" ]]; then # upLib
-libName="$2"
-if [[ ! -d "${SCD}/lib/${libName}" ]]; then
-br
-p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
-br
-exit 1
-fi
-confirm "Do you want to update ${libName}?"
-br
-h2 " No problem, let's go..."
-br
-p "- Moving into the Directory"
-cd "${SCD}/lib/${libName}" || return
-branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
-p "- Reset from origin/${branch}"
-br
-git fetch origin "$branch"
-if git reset --hard origin/"$branch"; then
-br
-p "${btnSuccess} Done! ${x} ${libName} is updated."
-br
-else
-br
-p "${btnWarning} Oops! ${x} Command exited with code ${?}"
-br
-fi
-fi # End upLib
-if [[ "$1" == "rmBox" ]]; then # Link
-boxName="$2"
-if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
-br
-p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
-br
-exit 1
-fi
-root="${SCD}/boxes/${boxName}"
-exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
-link="${SDD}/bin/${exe}"
-localBoxes="${SCD}/registers/localBoxes.yaml"
-confirm "Do you really want to delete ${boxName}?"
-br
-p " Allright, pal, let's clean a little..."
-br
-[[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
-p "- Removed symlink: ${em}${exe}${x}"
-rm -rf "$root"
-p "- Removed directory: ${em}${root}${x}"
-remove_yaml_item "$boxName" "$localBoxes"
-p "- Removed register entry: ${em}${boxName}${x}"
-br
-p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
-br
-fi # End link
-if [[ "$1" == "upBox" ]]; then # Link
-boxName="$2"
-if [[ ! -d "${SCD}/bbr/bin/${boxName}" ]]; then
-br
-p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in bbr/bin/"
-br
-exit 1
-fi
-confirm "Do you want to update ${boxName}?"
-br
-p " No problem, let's go..."
-br
-p "- Moving into the Directory"
-cd "${SCD}/bbr/bin/${boxName}" || return
-p "- Pulling latest content"
-git pull
-p "- Build again..."
-sherpa build
-br
-fi # End link
-if [[ "$1" == "links" ]]; then
-br
-h2 "Symlinks"
-symlinks_list
-br
-fi
-quiet="off"
+
+# Flag defaults, overridden by the getopts loop below.
+# Declared here rather than in a command, so a command can never
+# reset them after the flags were parsed.
 verb="off"
-if [[ "$1" == "build" || "$1" == "b" ]]; then #build
-shebang="src/_header.sh"
-sourceOrder="src/__paths.txt"
-combinedScript="scriptAlmost.sh"
-finalScript="$(get_yaml_item "package.executable" "Sherpa.yaml")"
-type="bin" # bin for an executable script OR lib for raw .sh
-while getopts "t:" opt; do
-case $opt in
-t) type=$OPTARG ;;
-*) echo "Invalid flag" ;;
-esac
+quiet="off"
+
+# For the -c demo flag, assigning a value via myScript -c purple
+color="" # String
+
+# @description usage fn
+# Printing the Help menu for -h, --help and `sherpa help`.
+# The command list is read from the table in src/router.sh, so it
+# can never fall out of sync with what is actually routable.
+usage() {
+	if [[ -t 1 ]]; then clear; fi
+
+	h1 " Welcome, I'm your Sh:erpa 👋"
+	hr "sh:help" "-"
+	br
+	p "${strong}${txtBlue}Usage:${x} ${txtGreen}sherpa [options] <command> [arg]${x}"
+	br
+	p "${strong}${txtBlue}Options:${x}"
+	p "  -h | --help       Display the usage message"
+	p "  -v | --version    Display the version"
+	p "  -V | --verbose    Enable the verbose mode"
+	p "  -q | --quiet      Continue force execution"
+	br
+	p "${strong}${txtBlue}Commands:${x}"
+
+	local word aliases description
+	while IFS='|' read -r word aliases description; do
+		[[ -z "$word" ]] && continue
+		p "  ${txtGreen}${word}${x}${aliases:+ (${aliases})} ${em}${description}${x}"
+	done < <(sherpa_commands)
+
+	br
+	p "Docs & News: ${link}https://sherpa-cli.netlify.app${x}"
+	p "Discord:     ${link}https://discord.gg/66bQJ6cuXG${x}"
+	br
+}
+
+# Using getopts for portability, as it is a shell builtin instead of
+# an external program like "getopt".
+while getopts ":hvc:Vq-:" opt; do
+	# Avoid placing an argument expecting option
+	# before the "-:" mark, like ":hvVqc:-:"
+	case $opt in
+	h)
+		usage
+		exit 0
+		;;
+	v)
+		cmd_version
+		exit 0
+		;;
+	c)
+		# Custom flag -c expecting a color name as argument.
+		# Usage: sherpa -c purple
+		color=${OPTARG}
+		;;
+	V)
+		verb="on"
+		;;
+	q)
+		quiet="on"
+		;;
+	-)
+		case "${OPTARG}" in
+		# --help
+		help)
+			usage
+			exit 0
+			;;
+		# --version
+		version)
+			cmd_version
+			exit 0
+			;;
+		# --verbose
+		verbose)
+			verb="on"
+			;;
+		# --quiet
+		quiet)
+			quiet="on"
+			;;
+		*)
+			# Long flags Error handling
+			echo "Unknown option --${OPTARG}" >&2
+			exit 1
+			;;
+		esac
+		;;
+	\?)
+		# Short flags Error handling
+		echo "Invalid option: -$OPTARG" >&2
+		exit 1
+		;;
+	:)
+		# Missing required argument Error handling
+		echo "Option -$OPTARG requires an argument." >&2
+		exit 1
+		;;
+	esac
 done
-[[ ! -d target ]] && mkdir target
-[[ ! -d target/local ]] && mkdir target/local
-[[ "$quiet" != "on" ]] && h1 " Building..."
-[[ "$quiet" != "on" ]] && br
-use2path
-[[ "$verb" == "on" ]] && echo "VB: Combining files listed in ${sourceOrder}..."
-[[ "$verb" == "on" ]] && echo "VB: Some more lines"
-mapfile -t files <"$sourceOrder"
-cat "${files[@]}" >"$combinedScript"
-if [[ -f "$combinedScript" ]]; then
-p "- Partials combined into ${combinedScript}"
-p "- Generating documentation from that file"
-[[ ! -d docs ]] && mkdir docs
-shdoc <"$combinedScript" >"docs/${finalScript}.md"
-p "- Removing comments and empty lines..."
-sed -i '/^\s*#/d; /^\s*$/d' "$combinedScript"
-p "- Removing trailing spaces..."
-sed -i 's/[[:space:]]*$//' "$combinedScript"
-p "- Removing the leading spaces..."
-sed -i 's/^[[:space:]]*//' "$combinedScript"
-p "- Adding the /usr/bin/env bash Shebang..."
-[[ ! -d target ]] && mkdir "target"
-[[ ! -d target/local ]] && mkdir "target/local"
-cat "$shebang" "$combinedScript" >"target/local/$finalScript"
-rm "$combinedScript"
-[[ "$verb" == "on" ]] && p "Making ${finalScript} it executable..."
-chmod +x "target/local/$finalScript"
-echo
-p "${btnSuccess} Done! ${x} Execute it with ${txtGreen}${em}${finalScript}${x}"
-br
-executable=$(get_yaml_item "package.executable" "Sherpa.yaml")
-symlink="${SDD}/bin/${executable}"
-target=$(readlink -f "$symlink")
-if [[ ! -L "$symlink" ]]; then
-ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
-fi
-if [[ "$target" != *"target/local"* ]]; then
-rm "$symlink"
-ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
-echo "Symlink updated successfully."
-else
-echo "local/${executable} still Symlinked to ${SDD}/bin"
-fi
-else
-p "${btnWarning} Oops! ${x} Something went wrong!"
-exit 1
-fi
-fi # End build
-if [[ "$1" == "new" ]]; then # Start Route
-if [[ -z $2 ]]; then
-br
-p "${btnDanger} Oops! ${x} Second argument needed."
-p "Usage: ${em}sherpa new <packageName> [lib]${x}"
-br
-p "It will be the directory's name, so no wild things."
-exit 1
-fi
-if [[ "$3" == "lib" ]]; then # Start newLib
-package=$2
-regDir="${SCD}/registers"
-localLibs="${regDir}/localLibs.yaml"
-[[ ! -d "$regDir" ]] && mkdir "$regDir"
-[[ ! -f "$localLibs" ]] && touch "$localLibs"
-package_dir="${SCD}/lib/$package"
-libTemplate="libStarter"
-custom_libTemplate="${SCD}/templates/${libTemplate}"
-default_libTemplate="${SDD}/templates/${libTemplate}"
-if [[ -d ${custom_libTemplate} ]]; then
-template_files="${custom_libTemplate}"
-else
-template_files="${default_libTemplate}"
-fi
-if [[ -d "$package_dir" ]]; then
-br
-p "${btnWarning} Oops! ${x} Directory ${txtYellow}lib/${package}${x} already exists."
-br
-p "${em}Pick another name ;)${x}"
-exit 1
-fi
-cd "${SCD}/lib" || return
-mkdir "$package"
-cd "$package" || return
-h1 " Welcome to the basecamp 👋 intrepid voyager."
-hr "= + =" "-"
-br
-p "Unloading template's files from the truck..."
-cp -r "${template_files}"/* .
-git init --quiet
-br
-p "${btnSuccess} Done! ${x} Time to start climbing."
-p "ProjectDir is $package_dir"
-br
-sed -i "s/FooBar/BAZ/g" "${package_dir}/README.md"
-add_yaml_item "package.type" "localLib" "${package_dir}/Sherpa.yaml"
-update_yaml_item "package.name" "$package" "${package_dir}/Sherpa.yaml"
-add_yaml_parent "$package" "$localLibs"
-add_yaml_item "$package.name" "$package" "$localLibs"
-fi # End newLib
-if [[ -n $1 && $# == 2 ]]; then # newBox
-project=$2
-regDir="${SCD}/registers"
-localBoxes="${regDir}/localBoxes.yaml"
-[[ ! -d "$regDir" ]] && mkdir "$regDir"
-[[ ! -f "$localBoxes" ]] && touch "$localBoxes"
-project_dir="${SCD}/boxes/$project"
-template="binStarter"
-custom_template="${SCD}/templates/${template}"
-default_template="${SDD}/templates/${template}"
-if [[ -d ${custom_template} ]]; then
-template_files="${custom_template}"
-else
-template_files="${default_template}"
-fi
-cd "${SCD}/boxes" || return
-mkdir "$project"
-if [[ ! -d "$project" ]]; then
-p "Couldn't create the ${project} directory"
-exit 1
-else
-cd "$project" || return
-fi
-h1 " Welcome to the basecamp 👋 intrepid voyager."
-hr "= + =" "-"
-br
-p "Unloading template's files from the truck..."
-cp -r "${template_files}"/* .
-git init --quiet
-br
-p "${btnSuccess} Done! ${x} Time to start climbing."
-p "ProjectDir is $project_dir"
-br
-echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
-add_yaml_item "package.root" "$project_dir" "${project_dir}/Sherpa.yaml"
-add_yaml_item "package.type" "localBin" "${project_dir}/Sherpa.yaml"
-update_yaml_item "package.name" "$project" "${project_dir}/Sherpa.yaml"
-update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
-add_yaml_parent "$project" "$localBoxes"
-add_yaml_item "${project}.root" "$project_dir" "$localBoxes"
-sherpa build
-fi #End newBox
-fi   # End Route
+
+# Removing the global flags from the flow
+shift $((OPTIND - 1))
+OPTIND=1
+# @file Home
+# @brief The dashboard, displayed when Sh:erpa is called alone
+# @description
+#
+#	To be used from anywhere.
+#
+#	It will:
+#	  * Display a welcome screen with some evolving data
+#	  * List the local and installed BashBoxes and Libs
+#	  * Check for a new Sh:erpa at most once a day
+#
+#	The update check is cached, and it runs in a subshell: the old
+#	version changed the caller's directory and hit the network on
+#	every single invocation.
+#
+#  Usage: s, sherpa
+#
+
+# shellcheck disable=SC2034
+# shellcheck disable=SC2154
+
+# Direct sub-directory names of $1, one per line. Globbing rather
+# than find, so this also works with BSD userland (macOS).
+list_dirs() {
+	local dir="$1"
+	local entry
+
+	[[ -d "$dir" ]] || return 0
+
+	for entry in "$dir"/*/; do
+		[[ -d "$entry" ]] || continue
+		basename "$entry"
+	done
+}
+
+# One dashboard section: directory + heading label.
+dashboard_section() {
+	local dir="$1"
+	local label="$2"
+	local with_exe="${3:-off}"
+
+	local found="off" name exe
+
+	h2 " ${label}"
+
+	while IFS= read -r name; do
+		found="on"
+		if [[ "$with_exe" == "on" ]]; then
+			exe="$(get_yaml_item "package.executable" "${dir}/${name}/Sherpa.yaml" 2>/dev/null || true)"
+			[[ "$exe" == "null" ]] && exe=""
+			p "* ${txtBlue}${name}${x}${exe:+: ${em}${exe}${x}}"
+		else
+			p "* ${txtBlue}${name}${x}"
+		fi
+	done < <(list_dirs "$dir")
+
+	[[ "$found" == "off" ]] && p " ${btnWarning} Empty ${x} Nothing here yet."
+	br
+}
+
+# Look for a newer Sh:erpa on the remote, at most once a day.
+# Writes ${SDD}/.update-check as a timestamp, and appends
+# .available when an update is actually waiting.
+check_for_updates() {
+	local cache="${SDD}/.update-check"
+	local now last
+
+	now="$(date +%s)"
+
+	if [[ -f "$cache" ]]; then
+		last="$(cat "$cache" 2>/dev/null || echo 0)"
+		[[ "$last" =~ ^[0-9]+$ ]] || last=0
+		((now - last < 86400)) && return 0
+	fi
+
+	printf "%s" "$now" >"$cache"
+
+	# Subshell: never leaves the caller in another directory,
+	# and a missing network is not an error.
+	(
+		cd "${SDD}" || exit 0
+		git fetch origin -q 2>/dev/null || exit 0
+
+		branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" || exit 0
+		[[ "$branch" == "HEAD" ]] && exit 0
+
+		ahead="$(git rev-list "HEAD..origin/${branch}" --count 2>/dev/null || echo 0)"
+		[[ "$ahead" -gt 0 ]] && printf "yes" >"${cache}.available"
+	)
+
+	return 0
+}
+
+cmd_home() {
+	# Bootstrap the custom directory from the template when missing
+	ensure_scd
+
+	if [[ -t 1 ]]; then clear; fi
+
+	h1 " Welcome to the Basecamp 👋"
+	hr "Sh:erpa" "-"
+	text-center "$(date "+%b %d - %H:%M")"
+
+	dashboard_section "${SCD}/boxes" "Local BashBoxes" "on"
+	dashboard_section "${SCD}/bbr/bin" "Installed BashBoxes" "on"
+	dashboard_section "${SCD}/lib" "Local Libraries"
+	dashboard_section "${SCD}/bbr/lib" "Installed Libraries"
+
+	h3 "Join us, the coffee is still warm."
+	p "Docs: ${link}https://sherpa-cli.netlify.app${x}"
+	p "Github: ${link}https://github.com/SherpaCLI${x}"
+	p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
+	br
+
+	check_for_updates
+
+	if [[ -f "${SDD}/.update-check.available" ]]; then
+		p "${btnWarning}!${x} A new Sh:erpa is available: ${em}sherpa self-update${x}"
+		br
+	fi
+}
+
+cmd_aliases() {
+	# Edit the aliases in the Aliasman file
+	aliasman -e
+}
+# @file Bashdoc
+# @brief Generating documentation with bashdoc.
+# @description
+#
+#    To be used from the root of a Sherpa project,
+#    created with "sherpa new myProject".
+#
+#    It will:
+#      * Create the docs/ folder if necessary
+#      * Use .sherpa/templates/bashdoc.hbs as template
+#      * Loop trough the .sh files in the src/ folder
+#      * Generates the files in the docs/ folder
+#
+#  Usage: sherpa bashdoc
+#
+# @see [shdoc](https://github.com/reconquest/shdoc).
+
+# Routed by src/router.sh
+
+cmd_bashdoc() {
+
+if [[ "$1" == "bashdoc" ]]; then # Bashdoc
+
+  if [[ ! -f Sherpa.yaml ]]; then
+    p "Opps. Probably not in a project root."
+    exit 1
+  fi
+
+  # Define directories
+  SRC_DIR="src"
+  DOCS_DIR="docs"
+  HBS="${SDD}/templates/bashdoc.hbs"
+
+  # Create docs directory if it doesn't exist
+  [[ ! -d "$DOCS_DIR" ]] && mkdir -p "$DOCS_DIR"
+
+  # Loop over all .sh files in the src directory
+  for script in "$SRC_DIR"/*.sh; do
+    # Check if there are any .sh files
+    if [[ -f "$script" ]]; then
+      # Extract the base name (filename without path)
+      base_name=$(basename "$script" .sh)
+      # Generate the markdown documentation using shdoc
+      # shdoc < "$script" > "$DOCS_DIR/$base_name.md"
+      bashdoc -c -j -l "${DOCS_DIR}" -t "${HBS}" $script
+    fi
+  done
+
+fi # End Bashdoc
+}
+# @file Compile
+# @brief Compiles the script to a binary, using SHC.
+# @description
+#
+#    To be used from the root of a Sherpa project,
+#    created with "sherpa new myProject".
+#
+#    It will:
+#      * Complain if you didn't first run: sherpa make
+#      * Create if needed the target/bin folder
+#      * Replace the shebang by "#!/bin/bash" (env not supported)
+#      * Compile the script using generated C code
+#      * Use the name from Sherpa.yaml -> .package.executable field
+#      * Save the binary in target/bin
+#      * Refresh or Update the symlink to .sherpa/bin
+#
+#  Usage: sherpa compile
+#
+
+#                     #
+#   --- Compile ---   #
+#                     #
+
+# Routed by src/router.sh
+
+cmd_compile() {
+
+	if [[ "$1" == "compile" ]]; then # Compile
+
+		executable="$(get_yaml_item "package.executable" Sherpa.yaml)"
+		# TODO: Do something if executable is empty
+		script="target/local/${executable}"
+		scriptCopy="/tmp/${executable}-copy"
+
+		# Chack if the built script is here in target/local
+		if [[ ! -f "target/local/${executable}" ]]; then # IsFile
+			p "${btnWarning} Oops! ${x} Run first: ${em}sherpa build${x}"
+			exit 1
+		else
+
+			# Create the directory if necessary
+			[[ ! -d "target/bin" ]] && mkdir target/bin
+
+			# Replace SheBang, as SHC does not support /usr/bin/env
+			# will look for other solution later, eventually...
+			cp "$script" "$scriptCopy"
+			sed_inplace "$scriptCopy" 's|#!/usr/bin/env bash|#!/bin/bash|g'
+
+			p "Compiling to Binary via SHC..."
+			export CC=gcc
+			shc -vrf "$scriptCopy" -o "target/bin/${executable}"
+
+			# Check the success of the execution
+			if [[ "$?" == 0 ]]; then
+				br
+				p "${btnSuccess} Done! ${x} The binary is stored in target/bin"
+				# Remove the temporary file
+				rm ${scriptCopy}
+				br
+
+				# The eventualy existing symlink
+				symlink="${SDD}/bin/${executable}"
+
+				# Get the target of the symlink
+				target=$(readlink -f "$symlink")
+
+				# Check if the target doesn't contain "target/bin"
+				if [[ "$target" != *"target/bin"* ]]; then
+					# Remove the existing symlink
+					rm "$symlink"
+
+					# Create a new symlink
+					ln -s "$(pwd)/target/bin/${executable}" "${SDD}/bin/${executable}"
+
+					echo "Symlink updated successfully."
+				else
+					echo "bin/${executable} still Symlinked to ${SDD}/bin"
+				fi
+
+			else
+				br
+				p "Ooops! Command failed, with the ${?} exit code."
+				br
+			fi
+
+		fi # End IsFile
+	fi  # End Compile
+}
+# --------------------------- #
+#  Open main.sh in the Editor #
+# --------------------------- #
+
+# @file Edit
+# @brief Open main files with the default Editor (conf in basecamp.sh).
+# @description
+#
+#    To be used from the root of a Sherpa project,
+#    created with "sherpa new myProject".
+#
+#    It will:
+#      * Use the program set in basecamp.sh, default to Vim
+#      * Open some pre-defined key files for quick editions
+#
+#    Routes:
+#      * bin: src/bin.sh - Main entry to the script content
+#      * opt: src/_options.sh - Flags and options via Getopt
+#      * basecamp: ~/.sherpa/basecamp.sh - Globals & Conf
+#      * yaml: Sherpa.yaml - Configuration variables
+#
+#    Arg $1 string The command, itself: e OR edit
+#    Arg $2 string The file code name: bin, opt, basecamp...
+#
+#  Usage: sherpa e bin
+#
+
+# Routed by src/router.sh
+
+cmd_edit() {
+
+if [[ $1 == "edit" || $1 == "e" ]]; then # Edit
+
+  fileToEdit=$2
+
+  # Edit the src/bin.sh file
+  if [[ "$fileToEdit" == "bin" ]]; then # Options
+    if [[ -f "src/bin.sh" ]]; then
+      ${EDITOR} src/bin.sh
+    else
+      br
+      p "Oops. No src/bin.sh file from here."
+      em "Make sure you are in a project root"
+      br
+    fi
+
+  # Edit the src/_options.sh file
+  elif [[ "$fileToEdit" == "opt" ]]; then
+    if [[ -f "src/_options.sh" ]]; then
+      ${EDITOR} src/_options.sh
+    else
+      br
+      p "Oops. No src/_options.sh file from here."
+      em "Make sure you are in a project root"
+      br
+    fi
+
+  # Edit the src/_options.sh file
+  elif [[ "$fileToEdit" == "basecamp" ]]; then
+    if [[ -f "${SDD}/basecamp.sh" ]]; then
+      ${EDITOR} "${SDD}/basecamp.sh"
+    else
+      br
+      p "Oops. Can't reach the basecamp."
+      em "Make sure Sherpa is corectly installed"
+      br
+    fi
+
+  # Edit the Sherpa.yaml file
+  elif [[ "$fileToEdit" == "yaml" ]]; then
+    if [[ -f "Sherpa.yaml" ]]; then
+      ${EDITOR} "Sherpa.yaml"
+    else
+      br
+      p "Oops. Can't find the Sherpa.yaml file."
+      em "Make sure you are in a project root"
+      br
+    fi
+
+  fi # end Options
+fi   # end Edit
+}
+# @file Box
+# @brief Commands related to some Box Management
+# @description
+#
+#    - localBox: details about a local BashBox
+#    - rmBox : Removing a local BashBox
+#    - upBox : Updating a remote BashBox
+#
+
+# ------------------------ #
+#  Local BashBox Infos     #
+# ------------------------ #
+
+# Routed by src/router.sh: localBox, rmBox, rmLib, upLib
+
+cmd_box() {
+
+if [[ "$1" == "localBox" ]]; then # localBox
+
+  # Like in ${SCD}/boxes/<boxName>
+  boxName="$2"
+
+  # Warning if Directory not found
+  if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
+    br
+    p "There is no ${txtBlue}${boxName}${x} directory in boxes/"
+    br
+
+    exit 1
+  fi
+
+  # Data Variables
+  yaml="${SCD}/boxes/${boxName}/Sherpa.yaml"
+  exe="$(get_yaml_item "package.executable" "$yaml")"
+
+  #
+  #   --- Output ---
+  #
+
+  clear
+  h1 " ${boxName}"
+  hr "BashBox" "-"
+
+  # Meta data
+  # Add: description, author, licence, docs, repo
+  p "- Root: ${SCD}/boxes/${boxName}"
+  p "- Executable: ${em}${exe}${x}"
+  br
+  p "${txtDanger} Delete ${x} Usage: ${em}sherpa rmBox ${boxName}${x}"
+
+fi # End localBox
+
+# ------------------------ #
+#  Delete a local BashBox  #
+# ------------------------ #
+
+if [[ "$1" == "rmBox" ]]; then # rmBox
+
+  # Like in ${SCD}/boxes/<boxName>
+  boxName="$2"
+
+  # Warning if Directory not found
+  if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
+    br
+    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
+    br
+
+    exit 1
+  fi
+
+  # Data Variables
+  root="${SCD}/boxes/${boxName}"
+  exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
+  link="${SDD}/bin/${exe}"
+  localBoxes="${SCD}/registers/localBoxes.yaml"
+
+  #
+  #   --- Output ---
+  #
+
+  confirm "Do you really want to delete ${boxName}?"
+  br
+  h2 " Allright, let's clean a little..."
+  br
+
+  # Delete Symlink
+  [[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
+  p "- Removed symlink: ${em}${exe}${x}"
+
+  # Delete root direcory
+  rm -rf "$root"
+  p "- Removed directory: ${em}${root}${x}"
+
+  # Delete register entry
+  remove_yaml_item "$boxName" "$localBoxes"
+  p "- Removed register entry: ${em}${boxName}${x}"
+  br
+
+  p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
+  br
+
+  exit 0
+
+fi # End rmBox
+
+# ---------------------------- #
+#  Delete a local BashBox Lib  #
+# ---------------------------- #
+
+if [[ "$1" == "rmLib" ]]; then # rmLib
+
+  # Like in ${SCD}/boxes/<boxName>
+  libName="$2"
+
+  # Warning if Directory not found
+  if [[ ! -d "${SCD}/lib/${libName}" ]]; then
+    br
+    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
+    br
+
+    exit 1
+  fi
+
+  # Data Variables
+  root="${SCD}/lib/${libName}"
+  localLibs="${SCD}/registers/localLibs.yaml"
+
+  #
+  #   --- Output ---
+  #
+
+  confirm "Do you really want to delete ${libName}?"
+  br
+  h2 " Allright, let's clean a little..."
+  br
+
+  # Delete root direcory
+  rm -rf "$root"
+  p "- Removed directory: ${em}${root}${x}"
+
+  # Delete register entry
+  remove_yaml_item "$libName" "$localLibs"
+  p "- Removed register entry: ${em}${libName}${x}"
+  br
+
+  p "${btnSuccess} Done! ${x} ${strong}${libName}${x} just left the camp"
+  br
+
+  exit 0
+
+fi # End rmLib
+
+# ---------------------------- #
+#  Update a local BashBox Lib  #
+# ---------------------------- #
+
+if [[ "$1" == "upLib" ]]; then # upLib
+
+  # Like in ${SCD}/lib/<libName>
+  libName="$2"
+
+  # Warning if Directory not found
+  if [[ ! -d "${SCD}/lib/${libName}" ]]; then
+    br
+    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${libName}${x} directory in lib/"
+    br
+
+    exit 1
+  fi
+
+  #
+  #   --- Output ---
+  #
+
+  confirm "Do you want to update ${libName}?"
+
+  br
+  h2 " No problem, let's go..."
+  br
+
+  # Get inside
+  p "- Moving into the Directory"
+  cd "${SCD}/lib/${libName}" || return
+
+  # Pull
+  branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
+  p "- Reset from origin/${branch}"
+  br
+  git fetch origin "$branch"
+
+  if git reset --hard origin/"$branch"; then
+    br
+    p "${btnSuccess} Done! ${x} ${libName} is updated."
+    br
+  else
+    br
+    p "${btnWarning} Oops! ${x} Command exited with code ${?}"
+    br
+  fi
+
+fi # End upLib
+}
+# @file UpBox
+# @brief Update an installed (remote) BashBox
+# @description
+#
+#	To be used from anywhere.
+#
+#	It will:
+#	  * Move into ${SCD}/bbr/bin/<boxName>
+#	  * Pull the latest content
+#	  * Build the package again
+#
+#	The local rmBox/rmLib/upLib commands live in src/commands/box.sh.
+#	This file used to carry a second, near-identical rmBox that
+#	shadowed the one in box.sh, because the later file wins in the
+#	concatenation. That duplicate is gone.
+#
+#  Usage: sherpa upBox <boxName>
+#
+
+# shellcheck disable=SC2154
+
+cmd_upBox() {
+	# Most of the time, the same as the directory name
+	# in ${SCD}/bbr/bin/<boxName>
+	boxName="${2:-}"
+
+	if [[ -z "$boxName" ]]; then
+		p "${btnWarning} Oops! ${x} Usage: ${em}sherpa upBox <boxName>${x}"
+		exit 1
+	fi
+
+	# Check if it exists
+	if [[ ! -d "${SCD}/bbr/bin/${boxName}" ]]; then
+		br
+		p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in bbr/bin/"
+		br
+
+		exit 1
+	fi
+
+	confirm "Do you want to update ${boxName}?"
+
+	br
+	p " No problem, let's go..."
+	br
+
+	# Get inside
+	p "- Moving into the Directory"
+	cd "${SCD}/bbr/bin/${boxName}" || return
+
+	# Pull
+	p "- Pulling latest content"
+	git pull
+
+	# Re-Build
+	p "- Build again..."
+	sherpa build
+	br
+
+	return 0
+}
+# @file Links
+# @brief Display the symlinks in the bin directory and their target
+#
+# @description
+#    To be used from anywhere.
+#
+#    It will:
+#      * Activate the symlinks_list() function, from lib/tent/symlinks.sh
+#      * Display the links as: link -> path/to/file
+#
+#  Usage: sherpa links
+#
+
+cmd_links() {
+	br
+	h2 "Symlinks"
+	# Display available links in the bin directory
+	symlinks_list
+	br
+
+	return 0
+}
+# @file Build
+# @brief Create the script from partials, generate docs, link it
+# @description
+#
+#	To be used from the root of a BashBox, created with
+#	"sherpa new myProject".
+#
+#	It will:
+#	  * Generate the list of partials to combine
+#	  * Extract the paths from `use "collection/lib"` in src/bin.sh
+#	  * Put every partial together into a single file
+#	  * Generate the docs from the shdoc comments
+#	  * Add the /usr/bin/env bash shebang
+#	  * Place the result in target/local
+#	  * Make it executable
+#	  * Symlink it into the bin directory for global availability
+#
+#	Minification is opt-in (--minify). It used to be the default and
+#	it is destructive: it removes '#' inside heredocs and strings and
+#	flattens meaningful indentation. A readable build is a feature.
+#
+#  Usage: sherpa b, build [--minify]
+#
+
+# shellcheck disable=SC2154
+
+# Symlink target/local/<executable> into the bin directory, so the
+# command can be invoked directly from anywhere.
+link_package() {
+	local executable="$1"
+	local symlink="${SDD}/bin/${executable}"
+	local current
+
+	current="$(readlink -f "$symlink" 2>/dev/null || true)"
+
+	# Already pointing at this very build: nothing to do.
+	if [[ -L "$symlink" && "$current" == *"target/local"* ]]; then
+		return 0
+	fi
+
+	[[ -L "$symlink" ]] && rm "$symlink"
+	ln -s "$(pwd)/target/local/${executable}" "$symlink"
+	p "- Linked ${em}${executable}${x} into ${em}${SDD}/bin${x}"
+
+	return 0
+}
+
+# Combine the partials into target/local/<executable>, generate the
+# documentation and link the result. Shared by build and run.
+build_package() {
+	local minify="${1:-off}"
+
+	local shebang="src/_header.sh"
+	local sourceOrder="src/__paths.txt"
+	local combinedScript="scriptAlmost.sh"
+	local finalScript
+
+	if [[ ! -f "Sherpa.yaml" ]]; then
+		p "${btnWarning} Oops! ${x} You are maybe not in a BashBox root."
+		exit 1
+	fi
+
+	finalScript="$(get_yaml_item "package.executable" "Sherpa.yaml")"
+	if [[ "$finalScript" == "null" || -z "$finalScript" ]]; then
+		p "${btnWarning} Oops! ${x} ${em}package.executable${x} is missing from Sherpa.yaml"
+		exit 1
+	fi
+
+	[[ ! -d target ]] && mkdir target
+	[[ ! -d target/local ]] && mkdir target/local
+
+	[[ "$quiet" != "on" ]] && p "- Generating the partials list..."
+
+	# Fills src/__paths.txt from the `use "lib/file"` statements
+	use2path
+
+	[[ "$verb" == "on" ]] && echo "VB: combining the files listed in ${sourceOrder}"
+
+	mapfile -t files <"$sourceOrder"
+	cat "${files[@]}" >"$combinedScript"
+
+	if [[ ! -f "$combinedScript" ]]; then
+		p "${btnWarning} Oops! ${x} Something went wrong while combining the partials."
+		exit 1
+	fi
+
+	[[ "$quiet" != "on" ]] && p "- Generating the documentation..."
+	[[ ! -d docs ]] && mkdir docs
+	shdoc <"$combinedScript" >"docs/${finalScript}.md"
+
+	if [[ "$minify" == "on" ]]; then
+		p "- Minifying: comments, blank lines and indentation..."
+		# [[:space:]] rather than \s: BSD sed (macOS) has no \s
+		sed_inplace "$combinedScript" -E \
+			-e '/^[[:space:]]*#/d' \
+			-e '/^[[:space:]]*$/d' \
+			-e 's/[[:space:]]+$//' \
+			-e 's/^[[:space:]]+//'
+	fi
+
+	cat "$shebang" "$combinedScript" >"target/local/$finalScript"
+	rm "$combinedScript"
+	chmod +x "target/local/$finalScript"
+
+	p "${btnSuccess} Done! ${x} Run it with ${txtGreen}${em}${finalScript}${x}"
+	br
+
+	link_package "$finalScript"
+}
+
+cmd_build() {
+	local minify="off"
+
+	# Drop the command word, so the flags below actually parse
+	if [[ $# -gt 0 ]]; then shift; fi
+
+	while getopts ":t:-:" opt; do
+		case $opt in
+		t)
+			# Reserved: build type (bin|lib). Not implemented yet.
+			:
+			;;
+		-)
+			case "${OPTARG}" in
+			minify) minify="on" ;;
+			*)
+				p "${btnWarning} Oops! ${x} Unknown flag: --${OPTARG}"
+				exit 1
+				;;
+			esac
+			;;
+		*)
+			echo "Invalid option: -$OPTARG" >&2
+			exit 1
+			;;
+		esac
+	done
+	OPTIND=1
+
+	[[ "$quiet" != "on" ]] && h1 " Building..."
+	build_package "$minify"
+}
+# --------------------- #
+#  New project command  #
+# --------------------- #
+
+# @file New
+# @brief Creates a new project folder, inspired by Rust's Cargo
+# @description
+#
+#    To be used from anywhere you would palce a coding project.
+#
+#    It will:
+#      * Complain if you don't supply a name for the project
+#      * Create a new folder, duplicating ~/.sherpa/templates/bin_starter
+#      * Initiate a Git repository in the folder
+#      * Update the project and executable name in project/Sherpa.yaml
+#      * Prints a Welcome screen with useful commands
+#
+#  Usage: sherpa new myproject
+#
+
+# For Variables declared in sourced files
+# shellcheck disable=SC2154
+
+# Routed by src/router.sh
+
+cmd_new() {
+
+	if [[ "$1" == "new" ]]; then # Start Route
+
+		# A second argument is needed
+		# ...the project's name/folder.
+		if [[ -z $2 ]]; then
+			br
+			p "${btnDanger} Oops! ${x} Second argument needed."
+			p "Usage: ${em}sherpa new <packageName> [lib]${x}"
+			br
+			p "It will be the directory's name, so no wild things."
+
+			exit 1
+		fi
+
+		# -------------------------------- #
+		#   Create a new Lib in $SCD/lib   #
+		# -------------------------------- #
+
+		if [[ "$3" == "lib" ]]; then # Start newLib
+
+			package=$2
+
+			# If necessary, create the localBoxex.yaml resister
+			regDir="${SCD}/registers"
+			localLibs="${regDir}/localLibs.yaml"
+			[[ ! -d "$regDir" ]] && mkdir "$regDir"
+			[[ ! -f "$localLibs" ]] && touch "$localLibs"
+
+			package_dir="${SCD}/lib/$package"
+			libTemplate="libStarter"
+
+			custom_libTemplate="${SCD}/templates/${libTemplate}"
+			default_libTemplate="${SDD}/templates/${libTemplate}"
+
+			if [[ -d ${custom_libTemplate} ]]; then
+				template_files="${custom_libTemplate}"
+			else
+				template_files="${default_libTemplate}"
+			fi
+
+			#
+			#   Exit if the directory already exists
+			#
+			if [[ -d "$package_dir" ]]; then
+				br
+				p "${btnWarning} Oops! ${x} Directory ${txtYellow}lib/${package}${x} already exists."
+				br
+				p "${em}Pick another name ;)${x}"
+
+				exit 1
+			fi
+
+			# Creating the new package
+			cd "${SCD}/lib" || return
+			mkdir "$package"
+			cd "$package" || return
+
+			h1 " Welcome to the basecamp 👋 intrepid voyager."
+			hr "= + =" "-"
+			br
+			p "Unloading template's files from the truck..."
+
+			# Copy template's files
+			cp -r "${template_files}"/* .
+
+			# Initialize an empty Git repo
+			git init --quiet
+
+			br
+			p "${btnSuccess} Done! ${x} Time to start climbing."
+			p "ProjectDir is $package_dir"
+			br
+
+			# README
+			sed_inplace "${package_dir}/README.md" "s/FooBar/BAZ/g"
+
+			# YAML Fiesta
+			add_yaml_item "package.type" "localLib" "${package_dir}/Sherpa.yaml"
+
+			# Update the Sherpa.yaml file
+			#+in the project root folder.
+			update_yaml_item "package.name" "$package" "${package_dir}/Sherpa.yaml"
+
+			# Add the BashBox to the localBoxes register
+			add_yaml_parent "$package" "$localLibs"
+			add_yaml_item "$package.name" "$package" "$localLibs"
+
+		fi # End newLib
+
+		# -------------------------------- #
+		#   Create a new Box in boxes/     #
+		# -------------------------------- #
+
+		if [[ -n $1 && $# == 2 ]]; then # newBox
+
+			# TODO: Should be called package, but it's ok.
+			project=$2
+
+			# If necessary, create the localBoxex.yaml resister
+			regDir="${SCD}/registers"
+			localBoxes="${regDir}/localBoxes.yaml"
+			[[ ! -d "$regDir" ]] && mkdir "$regDir"
+			[[ ! -f "$localBoxes" ]] && touch "$localBoxes"
+
+			project_dir="${SCD}/boxes/$project"
+			template="binStarter"
+
+			custom_template="${SCD}/templates/${template}"
+			default_template="${SDD}/templates/${template}"
+
+			if [[ -d ${custom_template} ]]; then
+				template_files="${custom_template}"
+			else
+				template_files="${default_template}"
+			fi
+
+			# TODO: Check if boxes/$project already exists !
+
+			# Create the project's root folder
+			# and move inside for the follow-up
+			cd "${SCD}/boxes" || return
+			mkdir "$project"
+
+			# If the mkdir is a success, go inside
+			if [[ ! -d "$project" ]]; then
+				p "Couldn't create the ${project} directory"
+				exit 1
+			else
+				# The || return is to please ShellCheck
+				# "in case the cd fails"
+				cd "$project" || return
+			fi
+
+			h1 " Welcome to the basecamp 👋 intrepid voyager."
+			hr "= + =" "-"
+			br
+			p "Unloading template's files from the truck..."
+
+			# Copy template's files
+			cp -r "${template_files}"/* .
+
+			# Initialize an empty Git repo
+			git init --quiet
+
+			br
+			p "${btnSuccess} Done! ${x} Time to start climbing."
+			p "ProjectDir is $project_dir"
+			br
+
+			# conf="${ROOT}/data/conf.yaml" to point at data files
+			echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
+			# replaced by this:
+			# Adding the root dir at the BashBox yaml
+			add_yaml_item "package.root" "$project_dir" "${project_dir}/Sherpa.yaml"
+			add_yaml_item "package.type" "localBin" "${project_dir}/Sherpa.yaml"
+
+			# Update the Sherpa.yaml file
+			#+in the project root folder.
+			update_yaml_item "package.name" "$project" "${project_dir}/Sherpa.yaml"
+			update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
+			update_yaml_item "interface.usage" "$project [options]" "${project_dir}/Sherpa.yaml"
+			NAME="$project" yq -i '.interface.examples = [strenv(NAME) + " --help"]' "${project_dir}/Sherpa.yaml"
+
+			# Add the BashBox to the localBoxes register
+			add_yaml_parent "$project" "$localBoxes"
+			add_yaml_item "${project}.root" "$project_dir" "$localBoxes"
+
+			# Build it, bro!
+			sherpa build
+
+		fi #End newBox
+	fi  # End Route
+}
+# --------------------- #
+#  New project command  #
+# --------------------- #
+
+# @file Init
+# @brief Basically the 'sherpa new' command, without 'cd $project'
+# @description
+#
+#    To be used from anywhere you would palce a coding project.
+#
+#    It will:
+#      * duplicating ~/.sherpa/templates/binStarter in the durrent directory
+#      * Initiate a Git repository in the folder
+#      * Update the project and executable name in project/Sherpa.yaml
+#      * Prints a Welcome screen with useful commands
+#
+#  Usage: sherpa new myproject
+#
+
+# For Variables declared in sourced files
+# shellcheck disable=SC2154
+
+# Routed by src/router.sh
+
+cmd_init() {
+
 if [[ "$1" == "init" ]]; then # Start Route
-if [[ -n "$(ls -A)" ]]; then # Creation
-p "It seems like this directory is not empty."
-p "I hope you know about that."
-else
-project=$(basename "$PWD")
-project_dir="$(pwd)"
-template="binStarter"
-custom_template="${SCD}/templates/${template}"
-default_template="${SDD}/templates/${template}"
-if [[ -d ${custom_template} ]]; then
-template_files="${custom_template}"
-else
-template_files="${default_template}"
-fi
-h1 " Welcome to the basecamp 👋 intrepid voyager."
-hr "= + =" "-"
-br
-p "Unloading template's files from the truck..."
-cp -r ~/.sherpa/templates/${template}/* .
-git init --quiet
-br
-p "${btnSuccess} Done! ${x} Time to start climbing."
-p "ProjectDir is $project_dir"
-br
-p "You can follow the trail with some of those:"
-p "* sherpa run         # Build and Run your project"
-p "* sherpa e bin       # Edit the main script content"
-p "* sherpa e opt       # Edit the Flags & Options"
-p "* sherpa e yaml      # Edit the Sherpa.yaml file"
-p "* sherpa e basecamp  # Edit global data"
-br
-p "...more on ${link}https://github.com/AndiKod/sherpa${x}"
-br
-echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
-update_yaml_item "package.name" "$project" "${project_dir}/Sherpa.yaml"
-update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
-fi #End Creation
+
+  # The second argument is here
+  # let's do something with it.
+  if [[ -n "$(ls -A)" ]]; then # Creation
+
+    p "It seems like this directory is not empty."
+    p "I hope you know about that."
+
+  else
+
+    project=$(basename "$PWD")
+    project_dir="$(pwd)"
+    template="binStarter"
+    custom_template="${SCD}/templates/${template}"
+    default_template="${SDD}/templates/${template}"
+
+    if [[ -d ${custom_template} ]]; then
+      template_files="${custom_template}"
+    else
+      template_files="${default_template}"
+    fi
+
+    h1 " Welcome to the basecamp 👋 intrepid voyager."
+    hr "= + =" "-"
+    br
+    p "Unloading template's files from the truck..."
+
+    # Copy template's files
+    cp -r "${template_files}"/* .
+
+    # Initialize an empty Git repo
+    git init --quiet
+
+    br
+    p "${btnSuccess} Done! ${x} Time to start climbing."
+    p "ProjectDir is $project_dir"
+    br
+    p "You can follow the trail with some of those:"
+    p "* sherpa run         # Build and Run your project"
+    p "* sherpa e bin       # Edit the main script content"
+    p "* sherpa e opt       # Edit the Flags & Options"
+    p "* sherpa e yaml      # Edit the Sherpa.yaml file"
+    p "* sherpa e basecamp  # Edit global data"
+    br
+    p "...more on ${link}https://github.com/AndiKod/sherpa${x}"
+    br
+
+    # TODO: This might become obsolete
+    echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
+
+    # Update the Sherpa.yaml file
+    #+in the project root folder.
+    update_yaml_item "package.name" "$project" "${project_dir}/Sherpa.yaml"
+    update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
+
+    # --- Barbarisme à changer
+    #key="readonly PKG_NAME"
+    #new_value="${project}"
+    #filename="./src/_globals.sh"
+
+    # Use sed to find the key and modify its value
+    #sed -i -E "s/^(${key}\s*=\s*)\"([^\"]*)\"/\1\"${new_value}\"/" "$filename"
+
+    # --- fin barbarisme
+
+  fi #End Creation
 fi   # End Route
-if [[ "$1" == "run" || "$1" == "r" ]]; then
-shebang="src/_header.sh"
-sourceOrder="src/__paths.txt"
-combinedScript="scriptAlmost.sh"
-finalScript="$(get_yaml_item "package.executable" "Sherpa.yaml")"
-[[ ! -d target ]] && mkdir target
-[[ ! -d target/local ]] && mkdir target/local
-use2path
-mapfile -t files <"$sourceOrder"
-cat "${files[@]}" >"$combinedScript"
-if [[ -f "$combinedScript" ]]; then
-[[ ! -d docs ]] && mkdir docs
-shdoc <"$combinedScript" >"docs/${finalScript}.md"
-echo -e "--- Commands/Routes & nonFunctions ---\n" >>"docs/${finalScript}.md"
-bashdoc "$combinedScript" >>"docs/${finalScript}.md"
-sed -i '/^\s*#/d; /^\s*$/d' "$combinedScript"
-sed -i 's/[[:space:]]*$//' "$combinedScript"
-sed -i 's/^[[:space:]]*//' "$combinedScript"
-cat "$shebang" "$combinedScript" >"target/local/$finalScript"
-rm "$combinedScript"
-chmod +x "target/local/$finalScript"
-executable=$(get_yaml_item "package.executable" "Sherpa.yaml")
-symlink="${SDD}/bin/${executable}"
-target=$(readlink -f "$symlink")
-if [[ ! -L "$symlink" ]]; then
-ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
-fi
-if [[ "$target" != *"target/local"* ]]; then
-rm "$symlink"
-ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
-"$executable"
-else
-"$executable"
-fi
-else
-echo "${btnWarning} Oops! ${x} Something went wrong."
-exit 1
-fi
-fi
+}
+# @file Run
+# @brief Build the package and run it
+# @description
+#
+#	To be used from the root of a BashBox, created with
+#	"sherpa new myProject".
+#
+#	It will:
+#	  * Build the package, exactly like `sherpa build`
+#	  * Execute the freshly built script
+#	  * Forward any extra argument to that script
+#
+#	The build is the same code path as `sherpa build`, so the two can
+#	no longer drift apart. The script is executed from target/local,
+#	not through the symlink, so it is always the build you just made.
+#
+#  Usage: sherpa r, run [args...]
+#
+
+# shellcheck disable=SC2154
+
+cmd_run() {
+	# Drop the command word: what is left goes to the script
+	if [[ $# -gt 0 ]]; then shift; fi
+
+	local finalScript
+
+	build_package "off"
+
+	finalScript="$(get_yaml_item "package.executable" "Sherpa.yaml")"
+	if [[ "$finalScript" == "null" || -z "$finalScript" ]]; then
+		p "${btnWarning} Oops! ${x} ${em}package.executable${x} is missing from Sherpa.yaml"
+		exit 1
+	fi
+
+	./"target/local/${finalScript}" "$@"
+}
+# @file Doc
+# @brief Generating documentation with shdoc
+# @description
+#
+#    To be used from the root of a Sherpa project,
+#    created with "sherpa new myProject".
+#
+#    It will:
+#      * Create the docs/ folder if necessary
+#      * Loop trough the .sh files in the src/ folder
+#      * Generates the files in the docs/ folder
+#
+#  Usage: sherpa d, doc
+#
+# @see [](https://sherpa-cli.netlify.app/tools/docs-gen)
+
+
+# Routed by src/router.sh
+
+cmd_doc() {
+
 if [[ "$1" == "doc" || "$1" == "d" ]]; then # Shdoc
-if [[ ! -f Sherpa.yaml ]]; then
-br
-p "${btnWarning} Opps! ${x} Probably not in a project root."
-br
-exit 1
-fi
-SRC_DIR="src"
-DOCS_DIR="docs"
-[[ ! -d "$DOCS_DIR" ]] && mkdir -p "$DOCS_DIR"
-find "$SRC_DIR" -type f -name "*.sh" | while read -r script; do
-rel_path=${script#"$SRC_DIR/"}
-dest_dir="$DOCS_DIR/$(dirname "$rel_path")"
-mkdir -p "$dest_dir"
-base_name=$(basename "$script" .sh)
-shdoc < "$script" > "$dest_dir/$base_name.md"
-done
-br
-p "${btnSuccess} Done! ${x} Check the ${em}docs/${x} folder"
-br
+
+  # A Sherpa.yaml file bust be present in the directory
+  # otherwise it's brobably not a BashBox directory
+  if [[ ! -f Sherpa.yaml ]]; then
+    br
+    p "${btnWarning} Opps! ${x} Probably not in a project root."
+    br
+    exit 1
+  fi
+
+  # Define directories
+  SRC_DIR="src"
+  DOCS_DIR="docs"
+
+  # Create docs directory if it doesn't exist
+  [[ ! -d "$DOCS_DIR" ]] && mkdir -p "$DOCS_DIR"
+
+  # Use find to locate all .sh files in src and its subdirectories
+  find "$SRC_DIR" -type f -name "*.sh" | while read -r script; do
+    # Extract the relative path from SRC_DIR
+    rel_path=${script#"$SRC_DIR/"}
+    
+    # Create the destination directory structure
+    dest_dir="$DOCS_DIR/$(dirname "$rel_path")"
+    mkdir -p "$dest_dir"
+    
+    # Extract the base name (filename without path and extension)
+    base_name=$(basename "$script" .sh)
+    
+    # Generate the markdown documentation using shdoc
+    shdoc < "$script" > "$dest_dir/$base_name.md"
+  done
+  
+  br
+  p "${btnSuccess} Done! ${x} Check the ${em}docs/${x} folder"
+  br
 fi # End Doc
-if [[ "$1" == "test" || "$1" == "t" ]]; then # test
-if [[ ! -f Sherpa.yaml ]]; then
-br
-p "${btnWarning} Oops! ${x} Probably not in a Sherpa project root."
-br
-exit 1
-fi
-[[ ! -d "${SCD}/registers" ]] && mkdir "${SCD}/registers"
-[[ ! -f "${SCD}/registers/" ]] && touch "${SCD}/registers/tests.yaml"
-key=$(date "+%s")
-value="$(pwd)/tests"
-file="${SCD}/registers/tests.yaml"
-add_yaml_item "$key" "$value" "$file"
-bashunit tests
-fi # End test
+}
+# @file Test
+# @brief Running the tests from the ./tests dir with bashunit
+# @description
+#
+#    To be used from the root of a Sherpa project,
+#    created with "sherpa new myProject".
+#
+#    It will:
+#      * Run the tests
+#      * Display the results
+#
+#  Usage: sherpa t, test
+#
+
+# ----------------------- #
+#  BashUnit Tests Command #
+# ----------------------- #
+
+# Run the examples declared in interface.examples.
+# They are the executable contract of the package: every one of them
+# must exit 0. Entries are plain shell, exactly as you would type them.
+run_examples() {
+	local manifest="Sherpa.yaml"
+	[[ -f "$manifest" ]] || return 0
+
+	local examples
+	examples="$(yq e '.interface.examples[]' "$manifest" 2>/dev/null || true)"
+	[[ "$examples" == "null" || -z "$examples" ]] && return 0
+
+	local executable
+	executable="$(get_yaml_item "package.executable" "$manifest" 2>/dev/null || true)"
+	[[ "$executable" == "null" || -z "$executable" ]] && return 0
+
+	if [[ ! -x "target/local/${executable}" ]]; then
+		p "${btnWarning} Note: ${x} not built yet, skipping the examples."
+		return 0
+	fi
+
+	h2 " Examples"
+
+	local example failed="off"
+	while IFS= read -r example; do
+		[[ -z "$example" || "$example" == "null" ]] && continue
+		if PATH="$(pwd)/target/local:${SDD}/bin:${PATH}" bash -c "$example" >/dev/null 2>&1; then
+			p " ${btnSuccess} ok ${x} ${em}${example}${x}"
+		else
+			p " ${btnDanger} failed ${x} ${em}${example}${x}"
+			failed="on"
+		fi
+	done <<<"$examples"
+
+	br
+	[[ "$failed" == "on" ]] && return 1
+	return 0
+}
+
+# Routed by src/router.sh
+
+cmd_test() {
+
+	if [[ "$1" == "test" || "$1" == "t" ]]; then # test
+
+		# Check if we are in a Sh:erpa project folder
+		if [[ ! -f Sherpa.yaml ]]; then
+			br
+			p "${btnWarning} Oops! ${x} Probably not in a Sherpa project root."
+			br
+			exit 1
+		fi
+
+		# Check if registers are here, or create them
+		[[ ! -d "${SCD}/registers" ]] && mkdir "${SCD}/registers"
+		[[ ! -f "${SCD}/registers/" ]] && touch "${SCD}/registers/tests.yaml"
+
+		key=$(date "+%s")
+		value="$(pwd)/tests"
+		file="${SCD}/registers/tests.yaml"
+
+		# Save a log into the tests registers
+		# in ${SCD}/registers/tests.yaml
+		# 2025-jan-21: /path/to/tests/dir
+		add_yaml_item "$key" "$value" "$file"
+
+		# The examples in the manifest are part of the contract
+		run_examples || examples_failed="on"
+
+		bashunit tests
+
+		[[ "$examples_failed" == "on" ]] && exit 1
+	fi # End test
+}
+# @file List
+# @brief List the local BashBoxes and Libs, for humans or for machines
+# @description
+#
+#	Reads each local manifest and reports what the package is and
+#	when to reach for it. The --json form is the machine-readable
+#	inventory: it is what lets an agent pick the right tool from the
+#	description and interface block, without reading any source.
+#
+#	Works with the new schema and with older manifests that do not
+#	have the interface block yet.
+#
+#  Usage: sherpa list [--json]
+#
+
+# Read one manifest key, returning a fallback for a missing key
+# or for the "null" yq prints when the path does not exist.
+pkg_field() {
+	local file="$1"
+	local key="$2"
+	local fallback="${3:-}"
+	local value
+
+	value="$(get_yaml_item "$key" "$file" 2>/dev/null || true)"
+	if [[ "$value" == "null" || -z "$value" ]]; then
+		value="$fallback"
+	fi
+
+	printf "%s" "$value"
+}
+
+# Emit one JSON object per package found directly under $1.
+collect_json() {
+	local dir="$1"
+	local type="$2"
+
+	[[ -d "$dir" ]] || return 0
+
+	local name manifest
+	while IFS= read -r name; do
+		manifest="${dir}/${name}/Sherpa.yaml"
+		[[ -f "$manifest" ]] || continue
+
+		jq -n \
+			--arg name "$(pkg_field "$manifest" "package.name" "$name")" \
+			--arg type "$type" \
+			--arg executable "$(pkg_field "$manifest" "package.executable" "")" \
+			--arg root "${dir}/${name}" \
+			--arg description "$(pkg_field "$manifest" "package.description" "")" \
+			--arg when "$(pkg_field "$manifest" "interface.when" "")" \
+			--arg usage "$(pkg_field "$manifest" "interface.usage" "")" \
+			'{name: $name, type: $type, executable: $executable, root: $root,
+        description: $description, when: $when, usage: $usage}'
+	done < <(list_dirs "$dir")
+}
+
+# Text output for one section: directory + heading label.
+list_section() {
+	local dir="$1"
+	local label="$2"
+	local with_exe="${3:-off}"
+
+	h2 " ${label}"
+
+	local found="off" name exe
+	while IFS= read -r name; do
+		found="on"
+		if [[ "$with_exe" == "on" ]]; then
+			exe="$(pkg_field "${dir}/${name}/Sherpa.yaml" "package.executable" "")"
+			p "* ${txtBlue}${name}${x}${exe:+: ${em}${exe}${x}}"
+		else
+			p "* ${txtBlue}${name}${x}"
+		fi
+	done < <(list_dirs "$dir")
+
+	[[ "$found" == "off" ]] && p " ${btnWarning} Empty ${x} Nothing here yet."
+	br
+}
+
+cmd_list() {
+	local json="off"
+
+	# Drop the command word, so the flags below actually parse
+	if [[ $# -gt 0 ]]; then shift; fi
+
+	while getopts ":j-:" opt; do
+		case $opt in
+		j) json="on" ;;
+		-)
+			case "${OPTARG}" in
+			json) json="on" ;;
+			*)
+				p "${btnWarning} Oops! ${x} Unknown flag: --${OPTARG}"
+				exit 1
+				;;
+			esac
+			;;
+		*)
+			echo "Invalid option: -$OPTARG" >&2
+			exit 1
+			;;
+		esac
+	done
+	OPTIND=1
+
+	# The machine-readable form: one array of objects, sorted by name.
+	if [[ "$json" == "on" ]]; then
+		{
+			collect_json "${SCD}/boxes" "bin"
+			collect_json "${SCD}/lib" "lib"
+		} | jq -s 'sort_by(.name)'
+		return 0
+	fi
+
+	br
+	h1 " Local packages"
+	hr "Sh:erpa" "-"
+
+	list_section "${SCD}/boxes" "BashBoxes" "on"
+	list_section "${SCD}/lib" "Libs"
+}
+# @file Install
+# @brief Install a BeshBox from a remote repository
+# @description
+#
+#    Can be used from anywhere.
+#
+#    It will:
+#      * CD into ${SCD}/bbr, either exe/ or lib/ subdirectory
+#      * Clone the repo in the right directory
+#      * If exe/ run `sherpa build` inside
+#      * If lib/ create symlink to ${SCD}/lib
+#      * Update meta-data about installed packages
+#
+#  Usage: sherpa install bashBoxName (still to be implemented)
+#     or: sherpa install -n "name" -t "type" -u "repo url"
+#
+#     -t can be either "bin" or "lib". Default to "bin"
+#
+
+# --------------------------- #
+#  Install a BashBox command  #
+# --------------------------- #
+
+# For Variables declared in sourced files
+# shellcheck disable=SC2154
+
 use "tent/symlink"
+
+# Create register if necessary
+# Local BashBox projects data will be stored in localBin.yaml
+# [[ ! -d "${SCD}/registers" ]] && mkdir "${SCD}/registers"
+# [[ ! -f "${SCD}/registers/bbrBin.yaml" ]] && touch "${SCD}/registers/bbrBin.yaml"
+# [[ ! -f "${SCD}/registers/bbrLib.yaml" ]] && touch "${SCD}/registers/bbrLib.yaml"
+
+# If necessary, create the localBoxex.yaml resister
 regDir="${SCD}/registers"
 bbrBin="${regDir}/bbrBin.yaml"
 bbrLib="${regDir}/bbrLib.yaml"
-if [[ "$1" == "install" ]]; then # Start Route
-shift
-name=""
-type="bin"
-url=""
-while getopts "n:t:u:" opt; do
-case $opt in
-n) name=${OPTARG} ;;
-t) type=${OPTARG} ;;
-u) url=${OPTARG} ;;
-*) echo "Invalid flag" ;;
-esac
-done
-if [[ $# == 0 ]]; then
-br
-h1 "Install a BashBox from Git"
-hr "+" "-"
-p "Usage: ${em}sherpa install foobar${x} ...not yet implemented"
-p "   or: ${em}sherpa install -n \"name\" -t \"bin\" -u \"url-to-repository\" ${x}"
-br
-p "If part of the BashBoxRegistry, the name is enough."
-p "If not, a full url to the repository is expected, with following flags:"
-p "-n name: Project's name... n=\"projName\""
-p "-t type: Either bin or lib"
-p "-u  url: Full url to the repository"
-exit 1
-fi
-if [[ -n $url ]]; then # ifUrl
-p "name: $name"
-p "type: $type"
-p "url: $url"
-br
-if [[ -z $type ]]; then # typeCheck
-p "If the -u flag is used, -t must be also set."
-p "The -t flag must be either -t='bin' or -t='lib'"
-exit 1
-elif [[ $type != "bin" && $type != "lib" ]]; then
-p "The -t flag must be either -t='bin' or -t='lib'"
-fi # End typeCheck
-if [[ $type = "bin" ]]; then # installBin
-if [[ -z "$name" ]]; then
-p "The name can't be empty"
-p "use: sherpa install -n \"name\" -t \"bin\" -u \"repoUrl\""
-exit 1
-fi
-if [[ -d "${SCD}/bbr/bin/${name}" ]]; then # isDirAlready
-br
-p "Ooops! A ${name} directory already exists."
-em "Pick another name."
-br
-exit 1
-else
-git clone "$url" "${SCD}/bbr/bin/${name}"
-cd "${SCD}/bbr/bin/${name}" || return
-fi # End isDirAlready
-bbName="${name}"
-bbRepo="${url}"
-bbDir="${SCD}/bbr/bin/${name}"
-bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
-binReg="${SCD}/registers/bbrBin.yaml"
-globalsFile="${bbDir}/src/_globals.sh"
-if yq "any(* | select(.repo == ${bbRepo}))" "${binReg}"; then # isInstalled
-br
-p "Oops. That BashBox is already installed."
-br
-exit 1
-else                                      # actual Install
-if [[ -L "${SDD}/bin/${bbExe}" ]]; then # isLinkAlready
-p "Ooops. A bin/${bbExe} symlink exists."
-p "Change the value in Sherpa.yaml, then build the Script."
-exit 1
-else
-if sherpa build; then # Log
-sed -i '/^readonly ROOT/d' "$globalsFile"
-echo "readonly ROOT=\"$bbDir\"" >>"$globalsFile"
-update_yaml_item "package.root" "$bbDir" "${bbDir}/Sherpa.yaml"
-add_yaml_parent "${bbName}" "${bbrBin}"
-add_yaml_item "${bbName}.repo" "$bbRepo" "${bbrBin}"
-add_yaml_item "${bbName}.root" "$bbDir" "${bbrBin}"
-add_yaml_item "${bbName}.exe" "$bbExe" "${bbrBin}"
-add_yaml_item "${bbName}.type" "bbr" "${bbrBin}"
-add_yaml_item "${bbName}.origin" "git" "${bbrBin}" # bbr / git / local
-fi                                                   # End Log
-fi                                                     # End isLinkAlready
-fi                                                       # End isInstalled
-fi # End installBin
-if [[ $type = "lib" ]]; then # installLib
-p "- Getting the code..."
-git clone "$url" "${SCD}/bbr/lib/${name}"
-br
-target="${SCD}/bbr/lib/${name}"
-symlink="${SCD}/lib/${name}"
-p "- Creating a symlink into ${SCD}/lib"
-ln -s "${target}" "${symlink}"
-if ln -s "$target" "${symlink}"; then # Log
-bbName="${name}"
-bbDir="${SCD}/bbr/lib/${name}"
-libReg="${SCD}/registers/bbrLib.yaml"
-add_yaml_parent "${bbName}" "${bbrLib}"
-add_yaml_item "${bbName}.root" "$bbDir" "$libReg"
-add_yaml_item "${bbName}.repo" "$url" "$libReg"
-add_yaml_item "${bbName}.type" "bbr" "$libReg"
-fi # End Log
-br
-p "${btnSuccess} Done! ${x} new Library available."
-br
-fi #End installLib
-fi # End ifUrl
-fi # End Route
+
+# Routed by src/router.sh
+
+cmd_install() {
+
+	if [[ "$1" == "install" ]]; then # Start Route
+
+		# Shift the first argument so we can process flags
+		shift
+
+		# The name of the BashBox to be installed
+		name=""
+		# Optional way to enforece the type of BB
+		# the type 'exe' are built, the 'lib' symlinked
+		type="bin"
+		# Direct url to a BashBox repository
+		url=""
+
+		while getopts "n:t:u:" opt; do
+			case $opt in
+			n) name=${OPTARG} ;;
+			t) type=${OPTARG} ;;
+			u) url=${OPTARG} ;;
+			*) echo "Invalid flag" ;;
+			esac
+		done
+
+		# Check directories existance, and create if not
+		# [[ ! -d "${SCD}/bbr" ]] && mkdir "${SCD}/bbr"
+		# [[ ! -d "${SCD}/bbr/bin" ]] && mkdir "${SCD}/bbr/bin"
+		# [[ ! -d "${SCD}/bbr/lib" ]] && mkdir "${SCD}/bbr/lib"
+
+		# A second argument is needed
+		# ...the project's name/folder.
+		if [[ $# == 0 ]]; then
+			br
+			h1 "Install a BashBox from Git"
+			hr "+" "-"
+			p "Usage: ${em}sherpa install foobar${x} ...not yet implemented"
+			p "   or: ${em}sherpa install -n \"name\" -t \"bin\" -u \"url-to-repository\" ${x}"
+			br
+			p "If part of the BashBoxRegistry, the name is enough."
+			p "If not, a full url to the repository is expected, with following flags:"
+			p "-n name: Project's name... n=\"projName\""
+			p "-t type: Either bin or lib"
+			p "-u  url: Full url to the repository"
+
+			exit 1
+		fi
+
+		# A repo url was provided
+		# let's install that BashBox
+		if [[ -n $url ]]; then # ifUrl
+
+			p "name: $name"
+			p "type: $type"
+			p "url: $url"
+			br
+
+			# TODO: Check if the url is a real one
+
+			if [[ -z $type ]]; then # typeCheck
+				p "If the -u flag is used, -t must be also set."
+				p "The -t flag must be either -t='bin' or -t='lib'"
+				exit 1
+			elif [[ $type != "bin" && $type != "lib" ]]; then
+				p "The -t flag must be either -t='bin' or -t='lib'"
+			fi # End typeCheck
+
+			# Install a BB executable
+			# - Clone the repo in ${SCD}/bbr/bin/repoName
+			# - cd ${SCD}/bbr/bin/repoName
+			# - sherpa build
+			if [[ $type = "bin" ]]; then # installBin
+
+				if [[ -z "$name" ]]; then
+					p "The name can't be empty"
+					p "use: sherpa install -n \"name\" -t \"bin\" -u \"repoUrl\""
+					exit 1
+				fi
+
+				# Check if an omonyme directory exists
+				# if not, clone the repo with that name
+				if [[ -d "${SCD}/bbr/bin/${name}" ]]; then # isDirAlready
+					br
+					p "Ooops! A ${name} directory already exists."
+					em "Pick another name."
+					br
+					exit 1
+				else
+					git clone "$url" "${SCD}/bbr/bin/${name}"
+					cd "${SCD}/bbr/bin/${name}" || return
+				fi # End isDirAlready
+
+				# Data from the Cloned repository & args
+				bbName="${name}"
+				bbRepo="${url}"
+				bbDir="${SCD}/bbr/bin/${name}"
+				bbExe="$(get_yaml_item "package.executable" "${bbDir}/Sherpa.yaml")"
+				binReg="${SCD}/registers/bbrBin.yaml"
+				globalsFile="${bbDir}/src/_globals.sh"
+
+				# Check if the repo is already installed
+				if yq "any(* | select(.repo == ${bbRepo}))" "${binReg}"; then # isInstalled
+					br
+					p "Oops. That BashBox is already installed."
+					br
+					exit 1
+				else                                     # actual Install
+					if [[ -L "${SDD}/bin/${bbExe}" ]]; then # isLinkAlready
+						p "Ooops. A bin/${bbExe} symlink exists."
+						p "Change the value in Sherpa.yaml, then build the Script."
+						exit 1
+					else
+						# sherpa build
+						# If the Install was a success, log it
+						if sherpa build; then # Log
+							# Prepare data for the Register entry
+
+							# Update the ROOT value in src/_globals.sh
+							# & Sherpa.yaml
+							sed_inplace "$globalsFile" '/^readonly ROOT/d'
+							echo "readonly ROOT=\"$bbDir\"" >>"$globalsFile"
+							update_yaml_item "package.root" "$bbDir" "${bbDir}/Sherpa.yaml"
+
+							# Save a log into the tests registers
+							# in ${SCD}/registers/tests.yaml
+							# 2025-jan-21: /path/to/tests/dir
+							add_yaml_parent "${bbName}" "${bbrBin}"
+							add_yaml_item "${bbName}.repo" "$bbRepo" "${bbrBin}"
+							add_yaml_item "${bbName}.root" "$bbDir" "${bbrBin}"
+							add_yaml_item "${bbName}.exe" "$bbExe" "${bbrBin}"
+							add_yaml_item "${bbName}.type" "bbr" "${bbrBin}"
+							add_yaml_item "${bbName}.origin" "git" "${bbrBin}" # bbr / git / local
+						fi                                                  # End Log
+					fi                                                   # End isLinkAlready
+				fi                                                    # End isInstalled
+
+			fi # End installBin
+
+			#
+			#  This part will be the
+			#  sherpa add -u "prepoUrl"
+			#
+
+			# Install a BB library
+			# - Clone the repo in ${SCD}/bbr/lib/bbName
+			# - Symlink that dir to {SCD}/lib/bbName
+			# - Use with: use "bbName/someFileInside"
+			if [[ $type = "lib" ]]; then # installLib
+
+				p "- Getting the code..."
+				git clone "$url" "${SCD}/bbr/lib/${name}"
+				br
+
+				target="${SCD}/bbr/lib/${name}"
+				symlink="${SCD}/lib/${name}"
+
+				# Creating a symlink
+				p "- Creating a symlink into ${SCD}/lib"
+				ln -s "${target}" "${symlink}"
+
+				# If Install is a Success, log it
+				if ln -s "$target" "${symlink}"; then # Log
+					# Prepare data for the Register entry
+					bbName="${name}"
+					bbDir="${SCD}/bbr/lib/${name}"
+					libReg="${SCD}/registers/bbrLib.yaml"
+
+					# Save a log into the tests registers
+					# in ${SCD}/registers/tests.yaml
+					# 2025-jan-21: /path/to/tests/dir
+					add_yaml_parent "${bbName}" "${bbrLib}"
+					add_yaml_item "${bbName}.root" "$bbDir" "$libReg"
+					add_yaml_item "${bbName}.repo" "$url" "$libReg"
+					add_yaml_item "${bbName}.type" "bbr" "$libReg"
+				fi # End Log
+
+				br
+				p "${btnSuccess} Done! ${x} new Library available."
+				br
+
+			fi #End installLib
+
+		fi # End ifUrl
+
+		# if [[ -n $2 ]]; then # from BashBoxRegistry
+		#   # bashbox=$2
+		#   p "Arg no2: ${2}"
+		# fi #End from BashBoxRegistry
+
+	fi # End Route
+}
+# @file Uninstall
+# @brief Delete a remode BashBox and things tied to it
+# @description
+#
+#    The `make` command is used to "put together" the
+#    script _partials.sh files into an optimized output.
+#
+
+# ------------------------ #
+#  Symlink to .sherpa/bin  #
+# ------------------------ #
+
+# Delete a local BashBox
+# Routed by src/router.sh
+
+cmd_uninstall() {
+
 if [[ "$1" == "uninstall" ]]; then # Uninstall
-shift
-name=""
-type="bin"
-while getopts "n:t:" opt; do
-case $opt in
-n) name=${OPTARG} ;;
-t) type=${OPTARG} ;;
-*) echo "Invalid flag" ;;
-esac
-done
-if [[ $# == 0 ]]; then
-br
-h1 " Uninstall an Executable or Library"
-hr "+" "-"
-p " ${em}sherpa uninstall -n \"name\" -t \"bin\"${x}"
-br
-p "-n name: Project's name... n=\"projName\""
-p "-t type: Either bin or lib"
-exit 1
-fi
-if [[ -n "$name" ]]; then # We Have A Name
-p "name: $name"
-p "type: $type"
-br
-if [[ -z $type ]]; then # typeCheck
-p "If the -n flag is used, -t must be also set."
-p "The -t flag must be either -t='bin' or -t='lib'"
-exit 1
-elif [[ $type != "bin" && $type != "lib" ]]; then
-p "The -t flag must be either -t='bin' or -t='lib'"
-fi # End typeCheck
-if [[ "$type" == "bin" ]]; then # Uninstall Box
-box_name="$name"
-register="${SCD}/registers/bbrBin.yaml"
-root="${SCD}/bbr/bin/${box_name}"
-exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
-link="${SDD}/bin/${exe}"
-if [ "$#" -ne 2 ]; then
-echo "Usage: sherpa uninstall <boxName>"
-exit 1
-fi
-confirm "Do you really want to uninstall ${box_name}?"
-br
-h2 " Allright, let's clean a little..."
-br
-[[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
-p "${txtGreen}-${x} Removed symlink: ${em}${exe}${x}"
-rm -rf "$root"
-p "${txtGreen}-${x} Removed directory: ${em}${root}${x}"
-remove_yaml_item "$box_name" "$register"
-p "${txtGreen}-${x} Removed register entry: ${em}${box_name}${x}"
-br
-p "${btnSuccess} Done! ${x} ${strong}${box_name}${x} just left the camp"
-br
-fi # end Uninstall Box
-if [[ "$type" == "lib" ]]; then # Uninstall Box
-lib_name="$name"
-register="${SCD}/registers/bbrLib.yaml"
-root="${SCD}/bbr/lib/${lib_name}"
-link="${SCD}/lib/${name}"
-confirm "Do you really want to uninstall ${lib_name}?"
-br
-h2 " Allright, let's clean a little..."
-br
-[[ -L "$link" ]] && rm "$link"
-p "${txtGreen}-${x} Removed symlink: ${em}${exe}${x}"
-rm -rf "$root"
-p "${txtGreen}-${x} Removed directory: ${em}${root}${x}"
-remove_yaml_item "$lib_name" "$register"
-p "${txtGreen}-${x} Removed register entry: ${em}${lib_name}${x}"
-br
-p "${btnSuccess} Done! ${x} ${strong}${lib_name}${x} just left the camp"
-br
-fi # end Uninstall Box
-fi # end We Have A Name
+
+  # Shift the first argument so we can process flags
+  shift
+
+  # The name of the BashBox to be installed
+  name=""
+  # Optional way to enforece the type of BB
+  # the type 'exe' are built, the 'lib' symlinked
+  type="bin"
+
+  while getopts "n:t:" opt; do
+    case $opt in
+    n) name=${OPTARG} ;;
+    t) type=${OPTARG} ;;
+    *) echo "Invalid flag" ;;
+    esac
+  done
+
+  # A second argument is needed
+  # ...the project's name/folder.
+  if [[ $# == 0 ]]; then
+    br
+    h1 " Uninstall an Executable or Library"
+
+    hr "+" "-"
+    p " ${em}sherpa uninstall -n \"name\" -t \"bin\"${x}"
+    br
+    p "-n name: Project's name... n=\"projName\""
+    p "-t type: Either bin or lib"
+
+    exit 1
+  fi
+
+  # A Box or Lib name was provided
+  if [[ -n "$name" ]]; then # We Have A Name
+
+    p "name: $name"
+    p "type: $type"
+    br
+
+    if [[ -z $type ]]; then # typeCheck
+      p "If the -n flag is used, -t must be also set."
+      p "The -t flag must be either -t='bin' or -t='lib'"
+      exit 1
+    elif [[ $type != "bin" && $type != "lib" ]]; then
+      p "The -t flag must be either -t='bin' or -t='lib'"
+    fi # End typeCheck
+
+    #                             #
+    # --- Uninstall a BashBox --- #
+    #                             #
+
+    if [[ "$type" == "bin" ]]; then # Uninstall Box
+
+      box_name="$name"
+      register="${SCD}/registers/bbrBin.yaml"
+
+      # Get the symlink name from the argument
+      root="${SCD}/bbr/bin/${box_name}"
+      exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
+      link="${SDD}/bin/${exe}"
+
+      # Check if an argument is provided
+      if [ "$#" -ne 2 ]; then
+        echo "Usage: sherpa uninstall <boxName>"
+        exit 1
+      fi
+
+      #                   #
+      #  --- Output ----  #
+      #                   #
+
+      confirm "Do you really want to uninstall ${box_name}?"
+
+      br
+      h2 " Allright, let's clean a little..."
+      br
+      # Delete Symlink
+      [[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
+      p "${txtGreen}-${x} Removed symlink: ${em}${exe}${x}"
+
+      # Delete root direcory
+      rm -rf "$root"
+      p "${txtGreen}-${x} Removed directory: ${em}${root}${x}"
+
+      # Delete register entry
+      remove_yaml_item "$box_name" "$register"
+      p "${txtGreen}-${x} Removed register entry: ${em}${box_name}${x}"
+      br
+
+      p "${btnSuccess} Done! ${x} ${strong}${box_name}${x} just left the camp"
+      br
+    fi # end Uninstall Box
+
+    #                             #
+    # --- Uninstall a Library --- #
+    #                             #
+
+    if [[ "$type" == "lib" ]]; then # Uninstall Box
+
+      lib_name="$name"
+      register="${SCD}/registers/bbrLib.yaml"
+
+      # Get the symlink name from the argument
+      root="${SCD}/bbr/lib/${lib_name}"
+      link="${SCD}/lib/${name}"
+
+      # Check if an argument is provided
+      # if [ "$#" -ne 2 ]; then
+      #   echo "Usage: sherpa uninstall <boxName>"
+      #   exit 1
+      # fi
+
+      #                   #
+      #  --- Output ----  #
+      #                   #
+
+      confirm "Do you really want to uninstall ${lib_name}?"
+
+      br
+      h2 " Allright, let's clean a little..."
+      br
+      # Delete Symlink
+      [[ -L "$link" ]] && rm "$link"
+      p "${txtGreen}-${x} Removed symlink: ${em}${exe}${x}"
+
+      # Delete root direcory
+      rm -rf "$root"
+      p "${txtGreen}-${x} Removed directory: ${em}${root}${x}"
+
+      # Delete register entry
+      remove_yaml_item "$lib_name" "$register"
+      p "${txtGreen}-${x} Removed register entry: ${em}${lib_name}${x}"
+      br
+
+      p "${btnSuccess} Done! ${x} ${strong}${lib_name}${x} just left the camp"
+      br
+    fi # end Uninstall Box
+
+  fi # end We Have A Name
+
 fi # end Uninstall
+}
+# @file Update
+# @brief Update a remote BashBox
+# @description
+#
+#    - Usage: sherpa update <boxName>
+#
+
+# ------------------------ #
+#  Updating a BashBox      #
+# ------------------------ #
+
+# Routed by src/router.sh
+
+cmd_update() {
+
 if [[ "$1" == "update" ]]; then # update
-boxName="$2"
-if [[ ! -d "${SCD}/bbr/bin/${boxName}" ]]; then
-br
-p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in bbr/bin/"
-br
-exit 1
-fi
-confirm "Do you want to update ${boxName}?"
-br
-h2 " No problem, let's go..."
-br
-p "- Moving into the Directory"
-cd "${SCD}/bbr/bin/${boxName}" || return
-branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
-p "- Reset from origin/${branch}"
-git fetch origin "$branch"
-git reset --hard origin/"$branch"
-p "- Build again..."
-sherpa build
-br
+
+  # Like in ${SCD}/boxes/<boxName>
+  boxName="$2"
+
+  # Warning if Directory not found
+  if [[ ! -d "${SCD}/bbr/bin/${boxName}" ]]; then
+    br
+    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in bbr/bin/"
+    br
+
+    exit 1
+  fi
+
+  #
+  #   --- Output ---
+  #
+
+  confirm "Do you want to update ${boxName}?"
+
+  br
+  h2 " No problem, let's go..."
+  br
+
+  # Get inside
+  p "- Moving into the Directory"
+  cd "${SCD}/bbr/bin/${boxName}" || return
+
+  # Pull
+  branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
+  p "- Reset from origin/${branch}"
+  git fetch origin "$branch"
+  git reset --hard origin/"$branch"
+
+  # Re-Build
+  p "- Build again..."
+  sherpa build
+  br
+
 fi # End update
-if [[ "$1" == "self-update" ]]; then # SelfUpdate
-if [[ "$#" -gt 1 ]]; then
-br
-p "${btnWarning} Too many arguments! ${x} Usage: ${em}sherpa self-update${x}"
-br
-exit 1
-fi
-confirm "Do you want to update Sh:erpa?"
-br
-h2 " Ok, let's go..."
-br
-p "${txtGreen}-${x} Moving into the Directory"
-cd "${SDD}" || return
-p "${txtGreen}-${x} Pulling latest content"
-git fetch origin
-git reset --hard origin/master
-p "${txtGreen}-${x} Re-building the executable"
-cd src
-./Make.sh
-br
-fi # End SelfUpdate
-if [[ "$1" == "self-test" ]]; then # SelfTest
-if [[ "$#" -gt 1 ]]; then
-br
-p "${btnWarning} Too many arguments! ${x} Usage: ${em}sherpa self-test${x}"
-br
-exit 1
-fi
-cd "$SDD"
-sherpa test
-fi # End SelfUpdate
+}
+# @file self-update.sh
+# @brief Updating Sh:erpa itself
+# @description
+#
+#    Usage `sherpa self-update`
+#
+
+# ------------------------- #
+#  Updating Sh:erpa itself  #
+# ------------------------- #
+
+# Routed by src/router.sh: self-update, self-test
+
+cmd_self_update() {
+
+	if [[ "$1" == "self-update" ]]; then # SelfUpdate
+
+		# Check the arguments number
+		if [[ "$#" -gt 1 ]]; then
+			br
+			p "${btnWarning} Too many arguments! ${x} Usage: ${em}sherpa self-update${x}"
+			br
+			exit 1
+		fi
+
+		confirm "Do you want to update Sh:erpa?"
+
+		br
+		h2 " Ok, let's go..."
+		br
+
+		# Get inside
+		p "${txtGreen}-${x} Moving into the Directory"
+		cd "${SDD}" || return
+
+		# Pull
+		p "${txtGreen}-${x} Pulling latest content"
+		git fetch origin
+		git reset --hard origin/master
+
+		# Re-Build
+		p "${txtGreen}-${x} Re-building the executable"
+		cd src
+		./Make.sh
+		br
+
+	fi # End SelfUpdate
+
+	# ---------------------------- #
+	#  Running tests from .sherpa  #
+	# ---------------------------- #
+
+	if [[ "$1" == "self-test" ]]; then # SelfTest
+
+		# Check the arguments number
+		if [[ "$#" -gt 1 ]]; then
+			br
+			p "${btnWarning} Too many arguments! ${x} Usage: ${em}sherpa self-test${x}"
+			br
+			exit 1
+		fi
+
+		cd "$SDD"
+		sherpa test
+
+	fi # End SelfTest
+}
+# @file Watch
+# @brief Auto-building on sources save
+# @description
+#
+#    - Usage: sherpa w, watch
+#
+
+# ------------------------------- #
+#  Watch for changes and ReBuild  #
+# ------------------------------- #
+
+# Routed by src/router.sh
+
+cmd_watch() {
+
 if [[ "$1" == "watch" || "$1" == "w" ]]; then # watch
-if [[ ! -f "Sherpa.yaml" ]]; then
-p "${btnWarning} Oops! ${x} You are maybe not in a BashBox root."
-exit 1
-fi
-watchexec -c -w ./src -w ./data -- sherpa build
+
+  if [[ ! -f "Sherpa.yaml" ]]; then
+     p "${btnWarning} Oops! ${x} You are maybe not in a BashBox root."
+     exit 1
+  fi
+
+  watchexec -c -w ./src -w ./data -- sherpa build
+
 fi # End watch
+}
+# @file Main
+# @brief The entry point of the assembled CLI
+# @description
+#
+#	Concatenated last, so every cmd_* function and the router are
+#	already defined. The global flags have been parsed and shifted
+#	away by src/help/options.sh at this point, so $@ holds the
+#	command word followed by its own arguments.
+#
+#	Nothing else belongs in this file.
+#
+#  Usage: (internal)
+#
+
+# shellcheck disable=SC2154
+
+sherpa_main "$@"

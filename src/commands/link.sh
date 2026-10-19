@@ -1,96 +1,61 @@
-# @file Link
-# @brief Was used to generate a symlink
+# @file UpBox
+# @brief Update an installed (remote) BashBox
 # @description
 #
-#    Expected to become Obsolete, as the links are
-#    generate on creation via `sherpa new myscript`.
+#	To be used from anywhere.
 #
-#    The `make` command is used to "put together" the
-#    script _partials.sh files into an optimized output.
+#	It will:
+#	  * Move into ${SCD}/bbr/bin/<boxName>
+#	  * Pull the latest content
+#	  * Build the package again
+#
+#	The local rmBox/rmLib/upLib commands live in src/commands/box.sh.
+#	This file used to carry a second, near-identical rmBox that
+#	shadowed the one in box.sh, because the later file wins in the
+#	concatenation. That duplicate is gone.
+#
+#  Usage: sherpa upBox <boxName>
 #
 
-# ------------------------ #
-#  Delete a local BashBox  #
-# ------------------------ #
+# shellcheck disable=SC2154
 
-if [[ "$1" == "rmBox" ]]; then # Link
+cmd_upBox() {
+	# Most of the time, the same as the directory name
+	# in ${SCD}/bbr/bin/<boxName>
+	boxName="${2:-}"
 
-  # Most of times, the same as the directory name
-  # in ${SCD}/boxes/<boxName>
-  boxName="$2"
+	if [[ -z "$boxName" ]]; then
+		p "${btnWarning} Oops! ${x} Usage: ${em}sherpa upBox <boxName>${x}"
+		exit 1
+	fi
 
-  # Check if exists
-  if [[ ! -d "${SCD}/boxes/${boxName}" ]]; then
-    br
-    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in boxes/"
-    br
+	# Check if it exists
+	if [[ ! -d "${SCD}/bbr/bin/${boxName}" ]]; then
+		br
+		p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in bbr/bin/"
+		br
 
-    exit 1
-  fi
+		exit 1
+	fi
 
-  root="${SCD}/boxes/${boxName}"
-  exe="$(get_yaml_item "package.executable" "${root}/Sherpa.yaml")"
-  link="${SDD}/bin/${exe}"
-  localBoxes="${SCD}/registers/localBoxes.yaml"
+	confirm "Do you want to update ${boxName}?"
 
-  confirm "Do you really want to delete ${boxName}?"
+	br
+	p " No problem, let's go..."
+	br
 
-  br
-  p " Allright, pal, let's clean a little..."
-  br
-  # Delete Symlink
-  [[ -L "$link" ]] && rm "$HOME/.sherpa/bin/${exe}"
-  p "- Removed symlink: ${em}${exe}${x}"
+	# Get inside
+	p "- Moving into the Directory"
+	cd "${SCD}/bbr/bin/${boxName}" || return
 
-  # Delete root direcory
-  rm -rf "$root"
-  p "- Removed directory: ${em}${root}${x}"
-  # Delete register entry
-  remove_yaml_item "$boxName" "$localBoxes"
-  p "- Removed register entry: ${em}${boxName}${x}"
-  br
+	# Pull
+	p "- Pulling latest content"
+	git pull
 
-  p "${btnSuccess} Done! ${x} ${strong}${boxName}${x} just left the camp"
-  br
+	# Re-Build
+	p "- Build again..."
+	sherpa build
+	br
 
-fi # End link
-
-# ------------------------ #
-#  Updating a BashBox      #
-# ------------------------ #
-
-if [[ "$1" == "upBox" ]]; then # Link
-
-  # Most of times, the same as the directory name
-  # in ${SCD}/boxes/<boxName>
-  boxName="$2"
-
-  # Check if exists
-  if [[ ! -d "${SCD}/bbr/bin/${boxName}" ]]; then
-    br
-    p "${btnWarning} Oops! ${x} There is no ${txtBlue}${boxName}${x} directory in bbr/bin/"
-    br
-
-    exit 1
-  fi
-
-  confirm "Do you want to update ${boxName}?"
-
-  br
-  p " No problem, let's go..."
-  br
-
-  # Get inside
-  p "- Moving into the Directory"
-  cd "${SCD}/bbr/bin/${boxName}" || return
-
-  # Pull
-  p "- Pulling latest content"
-  git pull
-
-  # Re-Build
-  p "- Build again..."
-  sherpa build
-  br
-
-fi # End link
+	return 0
+}

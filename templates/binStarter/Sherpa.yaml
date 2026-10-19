@@ -1,6 +1,34 @@
+# Sherpa.yaml - the manifest of this BashBox.
+#
+#   package:    what this is.
+#   interface:  when to reach for it. `sherpa list` prints it, and it
+#               is how an agent decides to use this command instead of
+#               writing something ad hoc. Keep `when` to one concrete
+#               situation, in one sentence.
+#
+# Only package.name is required: every other key has a default.
+# build: (entry, partials, minify, docs) is optional too, and defaults
+# to src/bin.sh, src/__paths.txt, no minification and docs on.
+
+sherpa: 1
+
 package:
   name: foobar
   description: "That BashBox is doing some awesome things..."
   version: 0.1.0
   repo: github.com/user/repo
   executable: foobar
+  type: localBin
+
+interface:
+  when: >-
+    Replace this line with the concrete situation where this command
+    is the right tool.
+  usage: foobar [options]
+  examples:
+    - foobar --help
+  exit_codes:
+    0: Success
+    1: Bad usage
+  requires:
+    commands: []

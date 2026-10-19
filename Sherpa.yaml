@@ -1,4 +1,26 @@
-# Sh:erpa Config
+# Sh:erpa's own manifest, in the same schema as any BashBox.
+#
+# `sherpa: 1` is the schema version of this file. Bump it only when the
+# meaning of an existing key changes, never when a key is added.
 
-name: Sh:erpa
-version: 0.5.4
+sherpa: 1
+
+package:
+  name: Sh:erpa
+  description: "Turn agent-written shell into a real, portable command."
+  version: 0.5.4
+  repo: github.com/SherpaCLI/sherpa
+  executable: sherpa
+  type: dotDir
+
+interface:
+  when: >-
+    Use when a shell script should become a real command: scaffolded,
+    kept as small partials, built into a single file, documented from
+    its comments, tested, and available on PATH.
+  usage: sherpa [options] <command> [arg]
+  examples:
+    - sherpa help
+    - sherpa list --json
+  requires:
+    commands: [git, yq, jq, shdoc]

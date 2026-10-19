@@ -1,2 +1,10 @@
-# Sets the default primaryColor for a BashBox
+# Sh:erpa Config
+#
+# The config of your custom directory. Read by lib/std/fmt.sh when a
+# project loads `use "std/fmt"`, so every project can share one accent
+# colour without setting anything itself.
+#
+# primaryColor accepts: Black, Red, Green, Yellow, Blue, Magenta,
+# Cyan, White. Anything else falls back to Green.
+
 primaryColor: Green

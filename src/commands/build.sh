@@ -1,149 +1,142 @@
 # @file Build
-# @brief Create the script from partials, generate docs, optimize.
+# @brief Create the script from partials, generate docs, link it
 # @description
 #
-#    To be used from the root of a Sherpa project,
-#    created with "sherpa new myProject".
+#	To be used from the root of a BashBox, created with
+#	"sherpa new myProject".
 #
-#    It will:
+#	It will:
+#	  * Generate the list of partials to combine
+#	  * Extract the paths from `use "collection/lib"` in src/bin.sh
+#	  * Put every partial together into a single file
+#	  * Generate the docs from the shdoc comments
+#	  * Add the /usr/bin/env bash shebang
+#	  * Place the result in target/local
+#	  * Make it executable
+#	  * Symlink it into the bin directory for global availability
 #
-#      * Generate a list of paths to be combined
-#      * Extract paths from `use "collection/lib"` in bin.sh
-#      * Put every partials together in a single file
-#      * Generates docs from the shdoc comments
-#      * Remove all full line comments
-#      * Remove all empty lines
-#      * Remove leading and trailing spaces
-#      * Add the /usr/bin/env shebang
-#      * Place the resulted script in target/local
-#      * Make it executable
-#      * Symlnk it to ~/.sherpa/bin for global availability
+#	Minification is opt-in (--minify). It used to be the default and
+#	it is destructive: it removes '#' inside heredocs and strings and
+#	flattens meaningful indentation. A readable build is a feature.
 #
-#  Usage: sherpa b, build
-#
-#
-# **Next: Flags to diferenciate build type**
-#
-# Usage: sherpa b -t "lib"
-#
-# - bin: Default. Creating an executable
-# - lib: Raw .sh files for fn() libraries
+#  Usage: sherpa b, build [--minify]
 #
 
-# Initialising flags variables
-# so that Shellcheck could be Happy.
-quiet="off"
-verb="off"
+# shellcheck disable=SC2154
 
-#                     #
-# --- Let's Roll! --- #
-#                     #
+# Symlink target/local/<executable> into the bin directory, so the
+# command can be invoked directly from anywhere.
+link_package() {
+	local executable="$1"
+	local symlink="${SDD}/bin/${executable}"
+	local current
 
-if [[ "$1" == "build" || "$1" == "b" ]]; then #build
+	current="$(readlink -f "$symlink" 2>/dev/null || true)"
 
-  shebang="src/_header.sh"
-  sourceOrder="src/__paths.txt"
-  combinedScript="scriptAlmost.sh"
-  finalScript="$(get_yaml_item "package.executable" "Sherpa.yaml")"
+	# Already pointing at this very build: nothing to do.
+	if [[ -L "$symlink" && "$current" == *"target/local"* ]]; then
+		return 0
+	fi
 
-  # --- OptionFlags --- #
+	[[ -L "$symlink" ]] && rm "$symlink"
+	ln -s "$(pwd)/target/local/${executable}" "$symlink"
+	p "- Linked ${em}${executable}${x} into ${em}${SDD}/bin${x}"
 
-  type="bin" # bin for an executable script OR lib for raw .sh
-  while getopts "t:" opt; do
-    case $opt in
-    t) type=$OPTARG ;;
-    *) echo "Invalid flag" ;;
-    esac
-  done
+	return 0
+}
 
-  # --- End OptionFlags --- #
+# Combine the partials into target/local/<executable>, generate the
+# documentation and link the result. Shared by build and run.
+build_package() {
+	local minify="${1:-off}"
 
-  # Creating directories if not exists
-  [[ ! -d target ]] && mkdir target
-  [[ ! -d target/local ]] && mkdir target/local
+	local shebang="src/_header.sh"
+	local sourceOrder="src/__paths.txt"
+	local combinedScript="scriptAlmost.sh"
+	local finalScript
 
-  [[ "$quiet" != "on" ]] && h1 " Building..."
-  [[ "$quiet" != "on" ]] && br
+	if [[ ! -f "Sherpa.yaml" ]]; then
+		p "${btnWarning} Oops! ${x} You are maybe not in a BashBox root."
+		exit 1
+	fi
 
-  # Call use2path script from .sherpa/bin
-  use2path
+	finalScript="$(get_yaml_item "package.executable" "Sherpa.yaml")"
+	if [[ "$finalScript" == "null" || -z "$finalScript" ]]; then
+		p "${btnWarning} Oops! ${x} ${em}package.executable${x} is missing from Sherpa.yaml"
+		exit 1
+	fi
 
-  [[ "$verb" == "on" ]] && echo "VB: Combining files listed in ${sourceOrder}..."
-  [[ "$verb" == "on" ]] && echo "VB: Some more lines"
+	[[ ! -d target ]] && mkdir target
+	[[ ! -d target/local ]] && mkdir target/local
 
-  # cat "$(<"$sourceOrder")" >"$combinedScript"
-  # Read the file paths into an array
-  mapfile -t files <"$sourceOrder"
+	[[ "$quiet" != "on" ]] && p "- Generating the partials list..."
 
-  # Concatenate the contents of each file into combinedScript
-  cat "${files[@]}" >"$combinedScript"
+	# Fills src/__paths.txt from the `use "lib/file"` statements
+	use2path
 
-  if [[ -f "$combinedScript" ]]; then
-    p "- Partials combined into ${combinedScript}"
-    p "- Generating documentation from that file"
-    [[ ! -d docs ]] && mkdir docs
-    shdoc <"$combinedScript" >"docs/${finalScript}.md"
+	[[ "$verb" == "on" ]] && echo "VB: combining the files listed in ${sourceOrder}"
 
-    p "- Removing comments and empty lines..."
-    sed -i '/^\s*#/d; /^\s*$/d' "$combinedScript"
+	mapfile -t files <"$sourceOrder"
+	cat "${files[@]}" >"$combinedScript"
 
-    p "- Removing trailing spaces..."
-    sed -i 's/[[:space:]]*$//' "$combinedScript"
+	if [[ ! -f "$combinedScript" ]]; then
+		p "${btnWarning} Oops! ${x} Something went wrong while combining the partials."
+		exit 1
+	fi
 
-    p "- Removing the leading spaces..."
-    sed -i 's/^[[:space:]]*//' "$combinedScript"
+	[[ "$quiet" != "on" ]] && p "- Generating the documentation..."
+	[[ ! -d docs ]] && mkdir docs
+	shdoc <"$combinedScript" >"docs/${finalScript}.md"
 
-    p "- Adding the /usr/bin/env bash Shebang..."
-    # [[ $# != 2 ]] && echo "Usage: sherpa Make scriptName"
+	if [[ "$minify" == "on" ]]; then
+		p "- Minifying: comments, blank lines and indentation..."
+		# [[:space:]] rather than \s: BSD sed (macOS) has no \s
+		sed_inplace "$combinedScript" -E \
+			-e '/^[[:space:]]*#/d' \
+			-e '/^[[:space:]]*$/d' \
+			-e 's/[[:space:]]+$//' \
+			-e 's/^[[:space:]]+//'
+	fi
 
-    # Create dirs if necessary
-    [[ ! -d target ]] && mkdir "target"
-    [[ ! -d target/local ]] && mkdir "target/local"
+	cat "$shebang" "$combinedScript" >"target/local/$finalScript"
+	rm "$combinedScript"
+	chmod +x "target/local/$finalScript"
 
-    # Create the file with the added shebang
-    cat "$shebang" "$combinedScript" >"target/local/$finalScript"
+	p "${btnSuccess} Done! ${x} Run it with ${txtGreen}${em}${finalScript}${x}"
+	br
 
-    # Clean-up. Remove the temporary file.
-    rm "$combinedScript"
+	link_package "$finalScript"
+}
 
-    # echo "Check with GREP if # lines exist"
-    [[ "$verb" == "on" ]] && p "Making ${finalScript} it executable..."
-    chmod +x "target/local/$finalScript"
-    echo
-    p "${btnSuccess} Done! ${x} Execute it with ${txtGreen}${em}${finalScript}${x}"
-    br
+cmd_build() {
+	local minify="off"
 
-    #
-    # --- Symlink ---
-    #
-    # The eventualy existing symlink
-    executable=$(get_yaml_item "package.executable" "Sherpa.yaml")
-    symlink="${SDD}/bin/${executable}"
+	# Drop the command word, so the flags below actually parse
+	if [[ $# -gt 0 ]]; then shift; fi
 
-    # Get the target of the symlink
-    target=$(readlink -f "$symlink")
+	while getopts ":t:-:" opt; do
+		case $opt in
+		t)
+			# Reserved: build type (bin|lib). Not implemented yet.
+			:
+			;;
+		-)
+			case "${OPTARG}" in
+			minify) minify="on" ;;
+			*)
+				p "${btnWarning} Oops! ${x} Unknown flag: --${OPTARG}"
+				exit 1
+				;;
+			esac
+			;;
+		*)
+			echo "Invalid option: -$OPTARG" >&2
+			exit 1
+			;;
+		esac
+	done
+	OPTIND=1
 
-    if [[ ! -L "$symlink" ]]; then
-      # Create a new symlink
-      ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
-    fi
-
-    # Check if the target doesn't contain "target/bin"
-    if [[ "$target" != *"target/local"* ]]; then
-      # Remove the existing symlink
-      rm "$symlink"
-
-      # Create a new symlink
-      ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
-
-      echo "Symlink updated successfully."
-    else
-      echo "local/${executable} still Symlinked to ${SDD}/bin"
-    fi
-
-  else
-    p "${btnWarning} Oops! ${x} Something went wrong!"
-    exit 1
-  fi
-
-fi # End build
+	[[ "$quiet" != "on" ]] && h1 " Building..."
+	build_package "$minify"
+}

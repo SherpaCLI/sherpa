@@ -1,6 +1,7 @@
 /home/andikod/.sherpa/basecamp.sh
 /home/andikod/.sherpa/lib/std/fmt.sh
 /home/andikod/.sherpa/lib/tent/symlink.sh
+/home/andikod/.sherpa/src/router.sh
 /home/andikod/.sherpa/src/help/options.sh
 /home/andikod/.sherpa/src/commands/home.sh
 /home/andikod/.sherpa/src/commands/bashdoc.sh
@@ -15,8 +16,10 @@
 /home/andikod/.sherpa/src/commands/run.sh
 /home/andikod/.sherpa/src/commands/doc.sh
 /home/andikod/.sherpa/src/commands/test.sh
+/home/andikod/.sherpa/src/commands/list.sh
 /home/andikod/.sherpa/src/commands/install.sh
 /home/andikod/.sherpa/src/commands/uninstall.sh
 /home/andikod/.sherpa/src/commands/update.sh
 /home/andikod/.sherpa/src/commands/self_update.sh
 /home/andikod/.sherpa/src/commands/watch.sh
+/home/andikod/.sherpa/src/main.sh

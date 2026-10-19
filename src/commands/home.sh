@@ -1,11 +1,17 @@
 # @file Home
-# @brief The screen displayed when Sh:erpa is called alone
+# @brief The dashboard, displayed when Sh:erpa is called alone
 # @description
 #
-#    To be used from anywhere.
+#	To be used from anywhere.
 #
-#    It will:
-#      * Display a welcome screen with some evolving data
+#	It will:
+#	  * Display a welcome screen with some evolving data
+#	  * List the local and installed BashBoxes and Libs
+#	  * Check for a new Sh:erpa at most once a day
+#
+#	The update check is cached, and it runs in a subshell: the old
+#	version changed the caller's directory and hit the network on
+#	every single invocation.
 #
 #  Usage: s, sherpa
 #
@@ -13,134 +19,108 @@
 # shellcheck disable=SC2034
 # shellcheck disable=SC2154
 
-# Check if the SCD is installed, otherwise copy the template
-[[ ! -d "$SCD" ]] && cp -r "${SDD}/templates/SCD" "${SCD}"
+# Direct sub-directory names of $1, one per line. Globbing rather
+# than find, so this also works with BSD userland (macOS).
+list_dirs() {
+	local dir="$1"
+	local entry
 
-# Local BashBoxes
-localBoxes="${SCD}/registers/localBoxes.yaml"
-bbrBin="${SCD}/registers/bbrBin.yaml"
+	[[ -d "$dir" ]] || return 0
 
-# If the script is called with no arguments
-if [[ "$#" == 0 ]]; then # Home Route
+	for entry in "$dir"/*/; do
+		[[ -d "$entry" ]] || continue
+		basename "$entry"
+	done
+}
 
-  clear
+# One dashboard section: directory + heading label.
+dashboard_section() {
+	local dir="$1"
+	local label="$2"
+	local with_exe="${3:-off}"
 
-  h1 " Welcome to the Basecamp 👋"
-  hr "Sh:erpa" "-"
-  text-center "$(date "+%b %d - %H:%M")"
+	local found="off" name exe
 
-  #
-  #  --- LocalBoxes List ---
-  #
+	h2 " ${label}"
 
-  # Create an array of first-level directories
-  mapfile -t boxes < <(find "${SCD}/boxes" -maxdepth 1 -type d -not -path "${SCD}/boxes" -printf '%f\n')
-  # Remove the trailing slash from directory names
-  boxes=("${boxes[@]%/}")
-  # Loop through the array
-  p "${txtGreen}Local BashBoxes: ${em}executable${x}"
-  if [[ -z "${boxes[*]}" ]]; then
-    p "${btnWarning} Empty ${x} Try: ${em}sherpa new hello${x}"
-  else
-    for box in "${boxes[@]}"; do
-      # Print each dir name: executable
-      p "* ${txtBlue}$box${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/boxes/${box}/Sherpa.yaml")${x}"
-    done
-  fi
-  br
+	while IFS= read -r name; do
+		found="on"
+		if [[ "$with_exe" == "on" ]]; then
+			exe="$(get_yaml_item "package.executable" "${dir}/${name}/Sherpa.yaml" 2>/dev/null || true)"
+			[[ "$exe" == "null" ]] && exe=""
+			p "* ${txtBlue}${name}${x}${exe:+: ${em}${exe}${x}}"
+		else
+			p "* ${txtBlue}${name}${x}"
+		fi
+	done < <(list_dirs "$dir")
 
-  #
-  #  --- Installed Boxes ---
-  #
+	[[ "$found" == "off" ]] && p " ${btnWarning} Empty ${x} Nothing here yet."
+	br
+}
 
-  # Create an array of first-level directories
-  mapfile -t dirs < <(find "${SCD}/bbr/bin" -maxdepth 1 -type d -not -path "${SCD}/bbr/bin" -printf '%f\n')
-  # Remove the trailing slash from directory names
-  dirs=("${dirs[@]%/}")
-  # Loop through the array
-  p "${txtGreen}Installed BashBoxes: ${em}executable${x}"
-  if [[ -z "${dirs[*]}" ]]; then
-    p "${btnWarning} Empty ${x} Install something. See the Docs."
-  else
-    for dir in "${dirs[@]}"; do
-      # Print out each dir name
-      p "* ${txtBlue}$dir${x}: ${em}$(get_yaml_item "package.executable" "${SCD}/bbr/bin/${dir}/Sherpa.yaml")${x}"
-    done
-  fi
-  br
+# Look for a newer Sh:erpa on the remote, at most once a day.
+# Writes ${SDD}/.update-check as a timestamp, and appends
+# .available when an update is actually waiting.
+check_for_updates() {
+	local cache="${SDD}/.update-check"
+	local now last
 
-  #
-  #  --- LocalLibs List ----
-  #
+	now="$(date +%s)"
 
-  # Create an array of first-level directories
-  mapfile -t libs < <(find "${SCD}/lib" -maxdepth 1 -type d -not -path "${SCD}/lib" -printf '%f\n')
-  # Remove the trailing slash from directory names
-  libs=("${libs[@]%/}")
-  # Loop through the array
-  h2 " Local Libraries"
-  if [[ -z "${libs[*]}" ]]; then
-    p "${btnWarning} Empty ${x} Create one. Check the Docs."
-  else
-    for lib in "${libs[@]}"; do
-      # Print out each dir name
-      p "* ${txtBlue}$lib${x}"
-    done
-  fi
-  br
+	if [[ -f "$cache" ]]; then
+		last="$(cat "$cache" 2>/dev/null || echo 0)"
+		[[ "$last" =~ ^[0-9]+$ ]] || last=0
+		((now - last < 86400)) && return 0
+	fi
 
-  #
-  #  --- Installed Libraries ---
-  #
+	printf "%s" "$now" >"$cache"
 
-  # Create an array of first-level directories
-  mapfile -t dirs < <(find "${SCD}/bbr/lib" -maxdepth 1 -type d -not -path "${SCD}/bbr/lib" -printf '%f\n')
-  # Remove the trailing slash from directory names
-  dirs=("${dirs[@]%/}")
-  # Loop through the array
-  h2 " Installed Libraries"
-  if [[ -z "${dirs[*]}" ]]; then
-    p "${btnWarning} Empty ${x} Install something. See the Docs."
-  else
-    for dir in "${dirs[@]}"; do
-      # Print out each dir name
-      p "* ${txtBlue}$dir${x}"
-    done
-  fi
-  br
+	# Subshell: never leaves the caller in another directory,
+	# and a missing network is not an error.
+	(
+		cd "${SDD}" || exit 0
+		git fetch origin -q 2>/dev/null || exit 0
 
-  # ---------------------- #
-  #      Sh:erpa Links     #
-  # ---------------------- #
+		branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" || exit 0
+		[[ "$branch" == "HEAD" ]] && exit 0
 
-  h3 "Join us, the coffee is still warm."
-  p "Docs: ${link}http://sherpa-cli.netlify.app${x}"
-  p "Github: ${link}http://github.com/SherpaCLI${x}"
-  p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
-  br
+		ahead="$(git rev-list "HEAD..origin/${branch}" --count 2>/dev/null || echo 0)"
+		[[ "$ahead" -gt 0 ]] && printf "yes" >"${cache}.available"
+	)
 
-  # ---------------------- #
-  #      Check Updates     #
-  # ---------------------- #
+	return 0
+}
 
-  # Move inside ${SDD}
-  cd "${SDD}" || exit 1
-  # Fetch the latest changes from the remote
-  git fetch origin -q &>/dev/null
-  # Check if the origin is ahead of the local branch
-  if [ "$(git rev-list HEAD..origin/$(git branch --show-current) --count)" -gt 0 ]; then
-    p ":: Update Available ::"
-  fi
+cmd_home() {
+	# Bootstrap the custom directory from the template when missing
+	ensure_scd
 
-fi # End Home Route
+	if [[ -t 1 ]]; then clear; fi
 
-# ----------- #
-#   Aliases   #
-# ----------- #
+	h1 " Welcome to the Basecamp 👋"
+	hr "Sh:erpa" "-"
+	text-center "$(date "+%b %d - %H:%M")"
 
-# This route is too tiny to deserve a file
+	dashboard_section "${SCD}/boxes" "Local BashBoxes" "on"
+	dashboard_section "${SCD}/bbr/bin" "Installed BashBoxes" "on"
+	dashboard_section "${SCD}/lib" "Local Libraries"
+	dashboard_section "${SCD}/bbr/lib" "Installed Libraries"
 
-if [[ "$1" == aliases ]]; then
-  # Edit aliases in Aliasman file
-  aliasman -e
-fi
+	h3 "Join us, the coffee is still warm."
+	p "Docs: ${link}https://sherpa-cli.netlify.app${x}"
+	p "Github: ${link}https://github.com/SherpaCLI${x}"
+	p "Discord: ${link}https://discord.gg/66bQJ6cuXG${x}"
+	br
+
+	check_for_updates
+
+	if [[ -f "${SDD}/.update-check.available" ]]; then
+		p "${btnWarning}!${x} A new Sh:erpa is available: ${em}sherpa self-update${x}"
+		br
+	fi
+}
+
+cmd_aliases() {
+	# Edit the aliases in the Aliasman file
+	aliasman -e
+}

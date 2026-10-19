@@ -20,6 +20,10 @@
 # For Variables declared in sourced files
 # shellcheck disable=SC2154
 
+# Routed by src/router.sh
+
+cmd_init() {
+
 if [[ "$1" == "init" ]]; then # Start Route
 
   # The second argument is here
@@ -49,7 +53,7 @@ if [[ "$1" == "init" ]]; then # Start Route
     p "Unloading template's files from the truck..."
 
     # Copy template's files
-    cp -r ~/.sherpa/templates/${template}/* .
+    cp -r "${template_files}"/* .
 
     # Initialize an empty Git repo
     git init --quiet
@@ -88,3 +92,4 @@ if [[ "$1" == "init" ]]; then # Start Route
 
   fi #End Creation
 fi   # End Route
+}

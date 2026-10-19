@@ -17,3 +17,8 @@ bin/racoon
 bin/kaboom
 bin/myScript
 bin/pacaman
+
+# Runtime state and build leftovers
+.update-check
+.update-check.available
+scriptAlmost.sh

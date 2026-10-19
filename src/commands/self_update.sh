@@ -9,54 +9,59 @@
 #  Updating Sh:erpa itself  #
 # ------------------------- #
 
-if [[ "$1" == "self-update" ]]; then # SelfUpdate
+# Routed by src/router.sh: self-update, self-test
 
-  # Check the arguments number
-  if [[ "$#" -gt 1 ]]; then
-    br
-    p "${btnWarning} Too many arguments! ${x} Usage: ${em}sherpa self-update${x}"
-    br
-    exit 1
-  fi
+cmd_self_update() {
 
-  confirm "Do you want to update Sh:erpa?"
+	if [[ "$1" == "self-update" ]]; then # SelfUpdate
 
-  br
-  h2 " Ok, let's go..."
-  br
+		# Check the arguments number
+		if [[ "$#" -gt 1 ]]; then
+			br
+			p "${btnWarning} Too many arguments! ${x} Usage: ${em}sherpa self-update${x}"
+			br
+			exit 1
+		fi
 
-  # Get inside
-  p "${txtGreen}-${x} Moving into the Directory"
-  cd "${SDD}" || return
+		confirm "Do you want to update Sh:erpa?"
 
-  # Pull
-  p "${txtGreen}-${x} Pulling latest content"
-  git fetch origin
-  git reset --hard origin/master
+		br
+		h2 " Ok, let's go..."
+		br
 
-  # Re-Build
-  p "${txtGreen}-${x} Re-building the executable"
-  cd src
-  ./Make.sh
-  br
+		# Get inside
+		p "${txtGreen}-${x} Moving into the Directory"
+		cd "${SDD}" || return
 
-fi # End SelfUpdate
+		# Pull
+		p "${txtGreen}-${x} Pulling latest content"
+		git fetch origin
+		git reset --hard origin/master
 
-# ---------------------------- #
-#  Running tests from .sherpa  #
-# ---------------------------- #
+		# Re-Build
+		p "${txtGreen}-${x} Re-building the executable"
+		cd src
+		./Make.sh
+		br
 
-if [[ "$1" == "self-test" ]]; then # SelfTest
+	fi # End SelfUpdate
 
-  # Check the arguments number
-  if [[ "$#" -gt 1 ]]; then
-    br
-    p "${btnWarning} Too many arguments! ${x} Usage: ${em}sherpa self-test${x}"
-    br
-    exit 1
-  fi
+	# ---------------------------- #
+	#  Running tests from .sherpa  #
+	# ---------------------------- #
 
-  cd "$SDD"
-  sherpa test
+	if [[ "$1" == "self-test" ]]; then # SelfTest
 
-fi # End SelfUpdate
+		# Check the arguments number
+		if [[ "$#" -gt 1 ]]; then
+			br
+			p "${btnWarning} Too many arguments! ${x} Usage: ${em}sherpa self-test${x}"
+			br
+			exit 1
+		fi
+
+		cd "$SDD"
+		sherpa test
+
+	fi # End SelfTest
+}

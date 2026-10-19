@@ -21,173 +21,180 @@
 # For Variables declared in sourced files
 # shellcheck disable=SC2154
 
-if [[ "$1" == "new" ]]; then # Start Route
+# Routed by src/router.sh
 
-  # A second argument is needed
-  # ...the project's name/folder.
-  if [[ -z $2 ]]; then
-    br
-    p "${btnDanger} Oops! ${x} Second argument needed."
-    p "Usage: ${em}sherpa new <packageName> [lib]${x}"
-    br
-    p "It will be the directory's name, so no wild things."
+cmd_new() {
 
-    exit 1
-  fi
+	if [[ "$1" == "new" ]]; then # Start Route
 
-  # -------------------------------- #
-  #   Create a new Lib in $SCD/lib   #
-  # -------------------------------- #
+		# A second argument is needed
+		# ...the project's name/folder.
+		if [[ -z $2 ]]; then
+			br
+			p "${btnDanger} Oops! ${x} Second argument needed."
+			p "Usage: ${em}sherpa new <packageName> [lib]${x}"
+			br
+			p "It will be the directory's name, so no wild things."
 
-  if [[ "$3" == "lib" ]]; then # Start newLib
+			exit 1
+		fi
 
-    package=$2
+		# -------------------------------- #
+		#   Create a new Lib in $SCD/lib   #
+		# -------------------------------- #
 
-    # If necessary, create the localBoxex.yaml resister
-    regDir="${SCD}/registers"
-    localLibs="${regDir}/localLibs.yaml"
-    [[ ! -d "$regDir" ]] && mkdir "$regDir"
-    [[ ! -f "$localLibs" ]] && touch "$localLibs"
+		if [[ "$3" == "lib" ]]; then # Start newLib
 
-    package_dir="${SCD}/lib/$package"
-    libTemplate="libStarter"
+			package=$2
 
-    custom_libTemplate="${SCD}/templates/${libTemplate}"
-    default_libTemplate="${SDD}/templates/${libTemplate}"
+			# If necessary, create the localBoxex.yaml resister
+			regDir="${SCD}/registers"
+			localLibs="${regDir}/localLibs.yaml"
+			[[ ! -d "$regDir" ]] && mkdir "$regDir"
+			[[ ! -f "$localLibs" ]] && touch "$localLibs"
 
-    if [[ -d ${custom_libTemplate} ]]; then
-      template_files="${custom_libTemplate}"
-    else
-      template_files="${default_libTemplate}"
-    fi
+			package_dir="${SCD}/lib/$package"
+			libTemplate="libStarter"
 
-    #
-    #   Exit if the directory already exists
-    #
-    if [[ -d "$package_dir" ]]; then
-      br
-      p "${btnWarning} Oops! ${x} Directory ${txtYellow}lib/${package}${x} already exists."
-      br
-      p "${em}Pick another name ;)${x}"
+			custom_libTemplate="${SCD}/templates/${libTemplate}"
+			default_libTemplate="${SDD}/templates/${libTemplate}"
 
-      exit 1
-    fi
+			if [[ -d ${custom_libTemplate} ]]; then
+				template_files="${custom_libTemplate}"
+			else
+				template_files="${default_libTemplate}"
+			fi
 
-    # Creating the new package
-    cd "${SCD}/lib" || return
-    mkdir "$package"
-    cd "$package" || return
+			#
+			#   Exit if the directory already exists
+			#
+			if [[ -d "$package_dir" ]]; then
+				br
+				p "${btnWarning} Oops! ${x} Directory ${txtYellow}lib/${package}${x} already exists."
+				br
+				p "${em}Pick another name ;)${x}"
 
-    h1 " Welcome to the basecamp 👋 intrepid voyager."
-    hr "= + =" "-"
-    br
-    p "Unloading template's files from the truck..."
+				exit 1
+			fi
 
-    # Copy template's files
-    cp -r "${template_files}"/* .
+			# Creating the new package
+			cd "${SCD}/lib" || return
+			mkdir "$package"
+			cd "$package" || return
 
-    # Initialize an empty Git repo
-    git init --quiet
+			h1 " Welcome to the basecamp 👋 intrepid voyager."
+			hr "= + =" "-"
+			br
+			p "Unloading template's files from the truck..."
 
-    br
-    p "${btnSuccess} Done! ${x} Time to start climbing."
-    p "ProjectDir is $package_dir"
-    br
+			# Copy template's files
+			cp -r "${template_files}"/* .
 
-    # README
-    sed -i "s/FooBar/BAZ/g" "${package_dir}/README.md"
+			# Initialize an empty Git repo
+			git init --quiet
 
-    # YAML Fiesta
-    add_yaml_item "package.type" "localLib" "${package_dir}/Sherpa.yaml"
+			br
+			p "${btnSuccess} Done! ${x} Time to start climbing."
+			p "ProjectDir is $package_dir"
+			br
 
-    # Update the Sherpa.yaml file
-    #+in the project root folder.
-    update_yaml_item "package.name" "$package" "${package_dir}/Sherpa.yaml"
+			# README
+			sed_inplace "${package_dir}/README.md" "s/FooBar/BAZ/g"
 
-    # Add the BashBox to the localBoxes register
-    add_yaml_parent "$package" "$localLibs"
-    add_yaml_item "$package.name" "$package" "$localLibs"
+			# YAML Fiesta
+			add_yaml_item "package.type" "localLib" "${package_dir}/Sherpa.yaml"
 
-  fi # End newLib
+			# Update the Sherpa.yaml file
+			#+in the project root folder.
+			update_yaml_item "package.name" "$package" "${package_dir}/Sherpa.yaml"
 
-  # -------------------------------- #
-  #   Create a new Box in boxes/     #
-  # -------------------------------- #
+			# Add the BashBox to the localBoxes register
+			add_yaml_parent "$package" "$localLibs"
+			add_yaml_item "$package.name" "$package" "$localLibs"
 
-  if [[ -n $1 && $# == 2 ]]; then # newBox
+		fi # End newLib
 
-    # TODO: Should be called package, but it's ok.
-    project=$2
+		# -------------------------------- #
+		#   Create a new Box in boxes/     #
+		# -------------------------------- #
 
-    # If necessary, create the localBoxex.yaml resister
-    regDir="${SCD}/registers"
-    localBoxes="${regDir}/localBoxes.yaml"
-    [[ ! -d "$regDir" ]] && mkdir "$regDir"
-    [[ ! -f "$localBoxes" ]] && touch "$localBoxes"
+		if [[ -n $1 && $# == 2 ]]; then # newBox
 
-    project_dir="${SCD}/boxes/$project"
-    template="binStarter"
+			# TODO: Should be called package, but it's ok.
+			project=$2
 
-    custom_template="${SCD}/templates/${template}"
-    default_template="${SDD}/templates/${template}"
+			# If necessary, create the localBoxex.yaml resister
+			regDir="${SCD}/registers"
+			localBoxes="${regDir}/localBoxes.yaml"
+			[[ ! -d "$regDir" ]] && mkdir "$regDir"
+			[[ ! -f "$localBoxes" ]] && touch "$localBoxes"
 
-    if [[ -d ${custom_template} ]]; then
-      template_files="${custom_template}"
-    else
-      template_files="${default_template}"
-    fi
+			project_dir="${SCD}/boxes/$project"
+			template="binStarter"
 
-    # TODO: Check if boxes/$project already exists !
+			custom_template="${SCD}/templates/${template}"
+			default_template="${SDD}/templates/${template}"
 
-    # Create the project's root folder
-    # and move inside for the follow-up
-    cd "${SCD}/boxes" || return
-    mkdir "$project"
+			if [[ -d ${custom_template} ]]; then
+				template_files="${custom_template}"
+			else
+				template_files="${default_template}"
+			fi
 
-    # If the mkdir is a success, go inside
-    if [[ ! -d "$project" ]]; then
-      p "Couldn't create the ${project} directory"
-      exit 1
-    else
-      # The || return is to please ShellCheck
-      # "in case the cd fails"
-      cd "$project" || return
-    fi
+			# TODO: Check if boxes/$project already exists !
 
-    h1 " Welcome to the basecamp 👋 intrepid voyager."
-    hr "= + =" "-"
-    br
-    p "Unloading template's files from the truck..."
+			# Create the project's root folder
+			# and move inside for the follow-up
+			cd "${SCD}/boxes" || return
+			mkdir "$project"
 
-    # Copy template's files
-    cp -r "${template_files}"/* .
+			# If the mkdir is a success, go inside
+			if [[ ! -d "$project" ]]; then
+				p "Couldn't create the ${project} directory"
+				exit 1
+			else
+				# The || return is to please ShellCheck
+				# "in case the cd fails"
+				cd "$project" || return
+			fi
 
-    # Initialize an empty Git repo
-    git init --quiet
+			h1 " Welcome to the basecamp 👋 intrepid voyager."
+			hr "= + =" "-"
+			br
+			p "Unloading template's files from the truck..."
 
-    br
-    p "${btnSuccess} Done! ${x} Time to start climbing."
-    p "ProjectDir is $project_dir"
-    br
+			# Copy template's files
+			cp -r "${template_files}"/* .
 
-    # conf="${ROOT}/data/conf.yaml" to point at data files
-    echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
-    # replaced by this:
-    # Adding the root dir at the BashBox yaml
-    add_yaml_item "package.root" "$project_dir" "${project_dir}/Sherpa.yaml"
-    add_yaml_item "package.type" "localBin" "${project_dir}/Sherpa.yaml"
+			# Initialize an empty Git repo
+			git init --quiet
 
-    # Update the Sherpa.yaml file
-    #+in the project root folder.
-    update_yaml_item "package.name" "$project" "${project_dir}/Sherpa.yaml"
-    update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
+			br
+			p "${btnSuccess} Done! ${x} Time to start climbing."
+			p "ProjectDir is $project_dir"
+			br
 
-    # Add the BashBox to the localBoxes register
-    add_yaml_parent "$project" "$localBoxes"
-    add_yaml_item "${project}.root" "$project_dir" "$localBoxes"
+			# conf="${ROOT}/data/conf.yaml" to point at data files
+			echo "readonly ROOT=\"$project_dir\"" >>"${project_dir}/src/_globals.sh"
+			# replaced by this:
+			# Adding the root dir at the BashBox yaml
+			add_yaml_item "package.root" "$project_dir" "${project_dir}/Sherpa.yaml"
+			add_yaml_item "package.type" "localBin" "${project_dir}/Sherpa.yaml"
 
-    # Build it, bro!
-    sherpa build
+			# Update the Sherpa.yaml file
+			#+in the project root folder.
+			update_yaml_item "package.name" "$project" "${project_dir}/Sherpa.yaml"
+			update_yaml_item "package.executable" "$project" "${project_dir}/Sherpa.yaml"
+			update_yaml_item "interface.usage" "$project [options]" "${project_dir}/Sherpa.yaml"
+			NAME="$project" yq -i '.interface.examples = [strenv(NAME) + " --help"]' "${project_dir}/Sherpa.yaml"
 
-  fi #End newBox
-fi   # End Route
+			# Add the BashBox to the localBoxes register
+			add_yaml_parent "$project" "$localBoxes"
+			add_yaml_item "${project}.root" "$project_dir" "$localBoxes"
+
+			# Build it, bro!
+			sherpa build
+
+		fi #End newBox
+	fi  # End Route
+}

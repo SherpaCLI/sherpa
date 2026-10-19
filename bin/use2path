@@ -1,82 +1,112 @@
 #!/usr/bin/env bash
 
 # @file use2path
-# @brief Generate a list of paths of files
-# from the (use "lib/file") statements
+# @brief Generate the list of files to combine, from the
+#+`use "lib/file"` statements and from the manifest
 
-# @description Have no better name idea for the moment
+# @description To be used from a BashBox root.
+#
+#	Reads the entry file (src/bin.sh by default, build.entry in the
+#	manifest if set) and turns every `use "collection/lib"` line into
+#	the matching path, looking in the custom dir first and falling
+#	back to the dot dir.
+#
+#	It also reports duplicate function definitions between the
+#	selected files. Two libraries silently claiming the same function
+#	name is the sharpest edge of a one-namespace, text-concatenated
+#	build, and it costs nothing to catch it here.
+#
+#	Writes src/__paths.txt.
 
-# To be used from a Sherpa project root
-# Sourcing this to get acces to the global constants
-#
-# Lines of text at first printed by default,
-# should be turned on by --verbose option
-# or sent to a log file next.
-#
-. ~/.sherpa/basecamp.sh
+# Self-locating, so it also works from a dev checkout or a sandbox
+# rather than only from the installed tree.
+SHERPA_DOT_DIR="${SHERPA_DOT_DIR:-$HOME/.sherpa}"
+export SHERPA_DOT_DIR
+
+. "${SHERPA_DOT_DIR}/basecamp.sh"
 use "std/fmt"
 
-# Initialise variables from arguments
-input_file="src/bin.sh"       # src/bin.sh
-output_file="src/__paths.txt" # src/__paths.txt
+# Entry file and output, overridable from the manifest below
+input_file="src/bin.sh"
+output_file="src/__paths.txt"
 
-# Main files paths
+# Manifest, if we are in a BashBox root
+manifest="Sherpa.yaml"
+if [[ -f "$manifest" ]]; then
+  entry="$(get_yaml_item "build.entry" "$manifest" 2>/dev/null || true)"
+  [[ "$entry" != "null" && -n "$entry" ]] && input_file="$entry"
+
+  out="$(get_yaml_item "build.partials" "$manifest" 2>/dev/null || true)"
+  [[ "$out" != "null" && -n "$out" ]] && output_file="$out"
+fi
+
+if [[ ! -f "$input_file" ]]; then
+  p "${btnWarning} Oops! ${x} Can't read ${em}${input_file}${x}"
+  exit 1
+fi
+
+# Standard partials, in build order
 globals="src/_globals.sh"
 basecamp="${SDD}/basecamp.sh"
 options="src/_options.sh"
 libFile="src/_lib.sh"
 bin="src/bin.sh"
 
-# Empty the file, prior to re-fill it
-: >$output_file
+: >"$output_file"
 
-# Add the top standard paths
-echo "$globals" >>$output_file
-# p "Added ${globals}"
+echo "$globals" >>"$output_file"
+echo "$basecamp" >>"$output_file"
 
-echo "$basecamp" >>$output_file
-# p "Added ${basecamp}"
-
-# Read each line from $input_file
 while IFS= read -r line; do
-  # For each line starting with: use "somethingHere"
-  if [[ $line =~ ^use\ \"(.*)\" ]]; then # Regex
-
-    # Assign the somethingHere to $lib
+  # Every line looking like: use "somethingHere"
+  if [[ $line =~ ^use\ \"(.*)\" ]]; then
     lib="${BASH_REMATCH[1]}"
 
-    # The same lib can exist in the Sherpa-Custom-Dir
-    # and override the one in the Sherpa-Dot-Dir
+    # The same lib can exist in the custom dir and override the
+    # one in the dot dir.
     customLib="${SCD}/lib/${lib}.sh"
     defaultLib="${SDD}/lib/${lib}.sh"
 
-    # Set $path to custom or default version,
-    # if any exists, throw Error with a message.
-    if [[ -f "${customLib}" ]]; then # Custom vs Default
+    if [[ -f "${customLib}" ]]; then
       path="${customLib}"
-      # p "Added ${path}"
     elif [[ -f "${defaultLib}" ]]; then
       path="${defaultLib}"
-      # p "Added ${path}"
     else
-      p "Can't find a ${lib}.sh file"
-      p "Or no use of src in the file"
+      p "${btnWarning} Oops! ${x} Can't find a ${em}${lib}.sh${x} file."
+      p "Check the use \"${lib}\" line in ${em}${input_file}${x}"
       exit 1
-    fi # End Custom vs Default
+    fi
 
-    # append the path in the $output_file
     echo "$path" >>"$output_file"
+  fi
+done <"$input_file"
 
-  fi                # End Regex
-done <"$input_file" # Feed $input_file content to the script
-
-# Add the bottom standard paths
 echo "$options" >>"$output_file"
-# p ""
+echo "$libFile" >>"$output_file"
+echo "$bin" >>"$output_file"
 
-echo "$libFile" >>$output_file
-# p "Added ${libFile}"
+# --- Collision check ------------------------------------------- #
+# Collect every function definition from the selected partials and
+# report the names defined more than once. Warning only: an
+# intentional override stays possible.
+declare -A seen=()
+collisions=""
 
-echo "$bin" >>$output_file
-# p "Added ${bin}"
-# p "...to ${output_file}"
+while IFS= read -r partial; do
+  [[ -f "$partial" ]] || continue
+  while IFS= read -r name; do
+    [[ -z "$name" ]] && continue
+    if [[ -n "${seen[$name]:-}" && "${seen[$name]}" != "$partial" ]]; then
+      collisions+="  ${name}: $(basename "${seen[$name]}") and $(basename "$partial")"$'\n'
+    fi
+    seen[$name]="$partial"
+  done < <(grep -oE '^[a-zA-Z_][a-zA-Z0-9_]*\(\)' "$partial" | sed 's/()$//')
+done <"$output_file"
+
+if [[ -n "$collisions" ]]; then
+  br
+  p "${btnWarning} Careful! ${x} The same function is defined twice:"
+  printf "%s" "$collisions"
+  p "The last file in the list wins. Rename, or drop the duplicate."
+  br
+fi

@@ -25,6 +25,10 @@
 #  Usage: sherpa e bin
 #
 
+# Routed by src/router.sh
+
+cmd_edit() {
+
 if [[ $1 == "edit" || $1 == "e" ]]; then # Edit
 
   fileToEdit=$2
@@ -75,3 +79,4 @@ if [[ $1 == "edit" || $1 == "e" ]]; then # Edit
 
   fi # end Options
 fi   # end Edit
+}

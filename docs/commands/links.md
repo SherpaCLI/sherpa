@@ -1,6 +1,6 @@
 # Links
 
-Display the symlinks in .sherpa/bin and their target
+Display the symlinks in the bin directory and their target
 
 ## Overview
 

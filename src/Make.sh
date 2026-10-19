@@ -1,7 +1,38 @@
 #!/usr/bin/env bash
-. ~/.sherpa/basecamp.sh
 
-# Sourcing libs from ~/.sherpa/lib
+# @file Make
+# @brief Assemble bin/sherpa from the partials in src/
+# @description
+#
+#	The build of Sh:erpa itself. Run it as ./Make.sh from the src/
+#	directory of any checkout: it reads that checkout, not $HOME, so
+#	a dev tree or a sandbox can be built without touching the
+#	installed copy.
+#
+#	It will:
+#	  * Write the ordered list of partials to src/__paths.txt
+#	  * Regenerate docs/commands/*.md with shdoc
+#	  * Concatenate the partials, add the shebang
+#	  * write bin/sherpa and make it executable
+#
+#	The order matters: the router is concatenated before
+#	help/options.sh (so the help screen can read the command table),
+#	and main.sh goes last to call the entry point.
+#
+#  Usage: ./Make.sh          (from src/)
+#	./Make.sh compile  (compile bin/sherpa to a binary with SHC)
+#
+
+MAKE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" # .../src
+REPO_DIR="$(dirname "$MAKE_DIR")"                        # the checkout root
+
+# Build from this checkout unless told otherwise
+SHERPA_DOT_DIR="${SHERPA_DOT_DIR:-$REPO_DIR}"
+export SHERPA_DOT_DIR
+
+. "${SHERPA_DOT_DIR}/basecamp.sh"
+
+# Sourcing libs from the lib directory
 use "std/fmt"
 
 #
@@ -10,254 +41,160 @@ use "std/fmt"
 
 if [[ "$#" == 0 ]]; then
 
-  shebang="shebang.sh"
-  # sourceOrder="src/SourceOrder.txt"
-  sourceOrder="__paths.txt"
-  combinedScript="scriptAlmost.sh"
-  finalScript="sherpa"
+	shebang="${MAKE_DIR}/shebang.sh"
+	sourceOrder="${MAKE_DIR}/__paths.txt"
+	combinedScript="${REPO_DIR}/scriptAlmost.sh"
+	finalScript="sherpa"
 
-  h1 " -= Building =-"
-  hr "Sh:erpa" "-"
-  br
-  p "- Generating partials files paths..."
-  # --- End Local use2paths ---------------------------------- #
+	h1 " -= Building =-"
+	hr "Sh:erpa" "-"
+	br
+	p "- Generating the partials paths..."
 
-  # Initialise variables from arguments
-  #input_file="bin.sh"       # src/bin.sh
-  output_file="__paths.txt" # src/__paths.txt
+	# Partials, in build order
+	globals="${REPO_DIR}/src/_globals.sh"
+	basecamp="${REPO_DIR}/basecamp.sh"
+	fmt="${REPO_DIR}/lib/std/fmt.sh"
+	symlink="${REPO_DIR}/lib/tent/symlink.sh"
+	router="${REPO_DIR}/src/router.sh"
+	options="${REPO_DIR}/src/help/options.sh"
+	main="${REPO_DIR}/src/main.sh"
 
-  # Main files paths
-  #globals="${SDD}/src/_globals.sh"
-  basecamp="${SDD}/basecamp.sh"
-  options="${SDD}/src/help/options.sh"
-  fmt="${SDD}/lib/std/fmt.sh"
-  symlink="${SDD}/lib/tent/symlink.sh"
-  # Commands
-  build="${SDD}/src/commands/build.sh"
-  home="${SDD}/src/commands/home.sh"
-  bashdoc="${SDD}/src/commands/bashdoc.sh"
-  compile="${SDD}/src/commands/compile.sh"
-  edit="${SDD}/src/commands/edit.sh"
-  box="${SDD}/src/commands/box.sh"
-  link="${SDD}/src/commands/link.sh"
-  links="${SDD}/src/commands/links.sh"
-  new="${SDD}/src/commands/new.sh"
-  init="${SDD}/src/commands/init.sh"
-  run="${SDD}/src/commands/run.sh"
-  doc="${SDD}/src/commands/doc.sh"
-  test="${SDD}/src/commands/test.sh"
-  install="${SDD}/src/commands/install.sh"
-  uninstall="${SDD}/src/commands/uninstall.sh"
-  update="${SDD}/src/commands/update.sh"
-  self_update="${SDD}/src/commands/self_update.sh"
-  watch="${SDD}/src/commands/watch.sh"
+	# Commands
+	home="${REPO_DIR}/src/commands/home.sh"
+	bashdoc="${REPO_DIR}/src/commands/bashdoc.sh"
+	compile="${REPO_DIR}/src/commands/compile.sh"
+	edit="${REPO_DIR}/src/commands/edit.sh"
+	box="${REPO_DIR}/src/commands/box.sh"
+	link="${REPO_DIR}/src/commands/link.sh"
+	links="${REPO_DIR}/src/commands/links.sh"
+	build="${REPO_DIR}/src/commands/build.sh"
+	new="${REPO_DIR}/src/commands/new.sh"
+	init="${REPO_DIR}/src/commands/init.sh"
+	run="${REPO_DIR}/src/commands/run.sh"
+	doc="${REPO_DIR}/src/commands/doc.sh"
+	test="${REPO_DIR}/src/commands/test.sh"
+	list="${REPO_DIR}/src/commands/list.sh"
+	install="${REPO_DIR}/src/commands/install.sh"
+	uninstall="${REPO_DIR}/src/commands/uninstall.sh"
+	update="${REPO_DIR}/src/commands/update.sh"
+	self_update="${REPO_DIR}/src/commands/self_update.sh"
+	watch="${REPO_DIR}/src/commands/watch.sh"
 
-  # Empty the file, prior to re-fill it
-  : >$output_file
+	: >"$sourceOrder"
 
-  # Add the top standard paths
-  #echo "$globals" >>$output_file
-  #p "Added ${globals}"
+	# Definition layer: must come before options.sh, which prints
+	# the command table when asked for help.
+	for partial in \
+		"$basecamp" \
+		"$fmt" \
+		"$symlink" \
+		"$router"; do
+		echo "$partial" >>"$sourceOrder"
+	done
 
-  echo "$basecamp" >>$output_file
-  # p "Added ${basecamp}"
+	# Global flags, parsed at start-up
+	echo "$options" >>"$sourceOrder"
 
-  echo "$fmt" >>$output_file
-  # p "Added ${fmt}"
+	# Commands
+	for partial in \
+		"$home" \
+		"$bashdoc" \
+		"$compile" \
+		"$edit" \
+		"$box" \
+		"$link" \
+		"$links" \
+		"$build" \
+		"$new" \
+		"$init" \
+		"$run" \
+		"$doc" \
+		"$test" \
+		"$list" \
+		"$install" \
+		"$uninstall" \
+		"$update" \
+		"$self_update" \
+		"$watch"; do
+		echo "$partial" >>"$sourceOrder"
+	done
 
-  echo "$symlink" >>$output_file
-  # p "Added ${symlink}"
+	# Entry point, last
+	echo "$main" >>"$sourceOrder"
 
-  # Add the bottom standard paths
-  echo "$options" >>$output_file
-  # p "Added ${options}"
+	p "...to ${sourceOrder}"
 
-  # --- Commands:
+	#
+	#  Generating Commands Docs
+	#
 
-  echo "$home" >>$output_file
-  # p "Added ${home}"
+	p "- Generating docs in docs/commands ..."
+	[[ ! -d "${REPO_DIR}/docs/commands" ]] && mkdir -p "${REPO_DIR}/docs/commands"
+	for file in "${REPO_DIR}"/src/commands/*; do
+		filename=$(basename "$file")
+		shdoc <"$file" >"${REPO_DIR}/docs/commands/${filename%.sh}.md"
+	done
 
-  echo "$bashdoc" >>$output_file
-  # p "Added ${bashdoc}"
+	br
+	p "- Combining the files listed in ${sourceOrder}..."
 
-  echo "$compile" >>$output_file
-  # p "Added ${compile}"
+	cat $(<"$sourceOrder") >"$combinedScript"
+	if [[ -f "$combinedScript" ]]; then
+		p "- Combined them into ${combinedScript}!"
 
-  echo "$edit" >>$output_file
-  # p "Added ${edit}"
+		p "- Adding the /usr/bin/env bash shebang..."
+		cat "$shebang" "$combinedScript" >"${REPO_DIR}/bin/$finalScript"
+		rm "$combinedScript"
 
-  echo "$box" >>$output_file
-  # p "Added ${box}"
-
-  echo "$link" >>$output_file
-  # p "Added ${link}"
-
-  echo "$links" >>$output_file
-  # p "Added ${links}"
-
-  echo "$build" >>$output_file
-  # p "Added ${build}"
-
-  echo "$new" >>$output_file
-  # p "Added ${new}"
-
-  echo "$init" >>$output_file
-  # p "Added ${init}"
-
-  echo "$run" >>$output_file
-  # p "Added ${run}"
-
-  echo "$doc" >>$output_file
-  # p "Added ${doc}"
-
-  echo "$test" >>$output_file
-  # p "Added ${test}"
-
-  echo "$install" >>$output_file
-  # p "Added ${install}"
-
-  echo "$uninstall" >>$output_file
-  # p "Added ${uninstall}"
-
-  echo "$update" >>$output_file
-  # p "Added ${update}"
-
-  echo "$self_update" >>$output_file
-  # p "Added ${self_update}"
-
-  echo "$watch" >>$output_file
-  # p "Added ${watch}"
-
-  # p "...to ${output_file}"
-
-  # --- End Local use2paths ---------------------------------- #
-
-  #
-  #  Generating Commands Docs
-  #
-
-  p "- Generating docs in ../docs/commands ..."
-  for file in ${SDD}/src/commands/*; do
-    filename=$(basename "$file")
-    shdoc <"$file" >"${SDD}/docs/commands/${filename%.sh}.md"
-  done
-
-  p "- Combining files listed in ${sourceOrder}..."
-
-  cat $(<"$sourceOrder") >"$combinedScript"
-  if [[ -f "$combinedScript" ]]; then
-    p "- Combined them into ${combinedScript}!"
-
-    # echo "Generating documentation from that file"
-    # [[ ! -d docs ]] && mkdir docs
-    # shdoc <"$combinedScript" >"../docs/${finalScript}.md"
-    # if [[ -f "../docs/${finalScript}.md" ]]; then
-    #   p "Check ../docs/${finalScript}.md"
-    #   br
-    # fi
-
-    p "- Removing comments and empty lines..."
-    sed -i '/^\s*#/d; /^\s*$/d' "$combinedScript"
-
-    p "- Removing trailing spaces..."
-    sed -i 's/[[:space:]]*$//' "$combinedScript"
-
-    p "- Removing the leading spaces..."
-    sed -i 's/^[[:space:]]*//' "$combinedScript"
-
-    p "- Adding the /usr/bin/env bash Shebang..."
-    # [[ $# != 2 ]] && echo "Usage: sherpa Make scriptName"
-    cat "$shebang" "$combinedScript" >"../bin/$finalScript"
-    rm "$combinedScript"
-
-    # echo "Check with GREP if # lines exist"
-    p "- Making it executable..."
-    chmod +x "../bin/$finalScript"
-    echo
-    p "${btnSuccess} Done! ${x} Execute it with just ${txtGreen}${em}${finalScript}${x}"
-    br
-
-    #/bin/${executable}"
-    # fi
-
-    # # Check if the target doesn't contain "target/bin"
-    # if [[ "$target" != *"target/local"* ]]; then
-    #   # Remove the existing symlink
-    #   rm "$symlink"
-
-    #   # Create a new symlink
-    #   ln -s "$(pwd)/target/local/${executable}" "${SDD}/bin/${executable}"
-
-    #   echo "Symlink updated successfully."
-    # else
-    #   echo "local/${executable} still Symlinked to ${SDD}/bin"
-    # fi
-
-  else
-    echo "${btnWarning} Oops! ${x} Something went wrong."
-    exit 1
-  fi
+		p "- Making it executable..."
+		chmod +x "${REPO_DIR}/bin/$finalScript"
+		echo
+		p "${btnSuccess} Done! ${x} It lives in ${txtGreen}${em}bin/${finalScript}${x}"
+		br
+	else
+		p "${btnWarning} Oops! ${x} Something went wrong."
+		exit 1
+	fi
 fi
 
 #
-# @description Compile Command
+# @description Compile Sh:erpa itself
 #
 
 if [[ "$1" == "compile" ]]; then # Compile
 
-  executable="$(get_yaml_item "package.executable" Sherpa.yaml)"
-  # TODO: Do something if executable is empty
-  script="target/local/${executable}"
-  scriptCopy="/tmp/${executable}-copy"
+	executable="$(get_yaml_item "package.executable" "${REPO_DIR}/Sherpa.yaml")"
+	if [[ "$executable" == "null" || -z "$executable" ]]; then
+		executable="sherpa"
+	fi
 
-  # Chack if the built script is here in target/local
-  if [[ ! -f "target/local/${executable}" ]]; then # IsFile
-    p "Oops! Run first: ${em}sherpa make${x}"
-    exit 1
-  else
-    [[ ! -d "target/bin" ]] && mkdir target/bin
+	script="${REPO_DIR}/bin/${executable}"
+	scriptCopy="/tmp/opencode/${executable}-copy"
 
-    # Replace SheBang, as SHC does not support /usr/bin/env
-    # will look for other solution along the way...
-    cp "$script" "$scriptCopy"
-    sed -i 's|#!/usr/bin/env bash|#!/bin/bash|g' "$scriptCopy"
+	if [[ ! -f "$script" ]]; then # IsFile
+		p "Oops! Run first: ${em}./Make.sh${x}"
+		exit 1
+	fi
 
-    echo "Compiling to Binary via SHC..."
-    export CC=gcc
-    shc -vrf "$scriptCopy" -o "target/bin/${executable}"
+	[[ ! -d "${REPO_DIR}/target/bin" ]] && mkdir -p "${REPO_DIR}/target/bin"
 
-    # Check the success of the execution
-    if [[ "$?" == 0 ]]; then
-      br
-      p "${btnSuccess} Done! ${x} The binary is stored in target/bin"
-      # Remove the temporary file
-      rm ${scriptCopy}
-      br
+	# Replace the Shebang, as SHC does not support /usr/bin/env
+	cp "$script" "$scriptCopy"
+	sed_inplace "$scriptCopy" 's|#!/usr/bin/env bash|#!/bin/bash|g'
 
-      # The eventualy existing symlink
-      symlink="${SDD}/bin/${executable}"
+	echo "Compiling to Binary via SHC..."
+	export CC=gcc
+	shc -vrf "$scriptCopy" -o "${REPO_DIR}/target/bin/${executable}"
 
-      # Get the target of the symlink
-      target=$(readlink -f "$symlink")
-
-      # Check if the target doesn't contain "target/bin"
-      if [[ "$target" != *"target/bin"* ]]; then
-        # Remove the existing symlink
-        rm "$symlink"
-
-        # Create a new symlink
-        ln -s "$(pwd)/target/bin/${executable}" "${SDD}/bin/${executable}"
-
-        echo "Symlink updated successfully."
-      else
-        echo "bin/${executable} still Symlinked to ${SDD}/bin"
-      fi
-
-    else
-      br
-      p "Ooops! Command failed, with the ${?} exit code."
-      br
-    fi
-
-  fi # End IsFile
-fi   # End Compile
+	if [[ "$?" == 0 ]]; then
+		br
+		p "${btnSuccess} Done! ${x} The binary is stored in target/bin"
+		rm "$scriptCopy"
+		br
+	else
+		br
+		p "Ooops! Command failed, with the ${?} exit code."
+		br
+	fi
+fi
