@@ -4,7 +4,7 @@
 
 ## Making Bash scripting, a Fun adventure!
 
-**Sh:erpa** brings Cargo, OhMy and WebDev worflow to Bash scripting, using the Terminal as a browser!
+**Sh:erpa** brings Cargo, OhMy and WebDev workflow to Bash scripting, using the Terminal as a browser!
 
 _Because WebDevs should be able to do more than `npm run dev` in a terminal, and Bash lovers don't have to be reduced to `automations` writers, obviously because I like both sides._
 
@@ -12,7 +12,7 @@ Docs: [sherpa-cli.netlify.app](https://sherpa-cli.netlify.app) - Discord: [Commu
 
 ### Quick install
 
-Be sure to have curl, git, gawk instaled (and obviously Bash), then run the installer:
+Be sure to have curl, git, gawk installed (and obviously Bash), then run the installer:
 
 ```bash
 bash -c "$(curl -sLo- https://sherpa-cli.netlify.app/install.sh)"
@@ -38,7 +38,7 @@ Upon `sherpa new myScript` the following is generated:
 # /home/user/sherpa/boxes/myScript
 .
 ├── data
-│   └── file.yaml
+│   └── example.yaml
 ├── docs
 │   └── myScript.md
 ├── README.md
@@ -79,9 +79,43 @@ main() {
 
 Sh:erpa will merge the partials plus those sourced with `use "dir/file"`, generate docs, remove comments and blanks, then build the script and make it available for direct invocations. The tool can be picked-up by WebDevs discovering Bash or experienced shell scripters taking advantage of the build, watch and modularity while writing things their own way.
 
+### The Sherpa.yaml Manifest
+
+Every BashBox and Lib carries a `Sherpa.yaml`. `sherpa: 1` is the schema version of the file, and the manifest is organised in blocks. Only `package.name` is required: every other key has a default.
+
+```yaml
+sherpa: 1
+
+package:
+  name: myScript
+  description: "One line about what it does."
+  version: 0.1.0
+  repo: github.com/User/myScript
+  executable: myScript
+  root: /home/user/sherpa/boxes/myScript
+  type: localBin   # localBin | localLib | dotDir
+
+interface:
+  when: >-
+    Use when a script should ... (the routing hint, for humans and agents)
+  usage: myScript [options]
+  examples:
+    - myScript --help
+  requires:
+    commands: [git, yq, jq]
+
+build:            # optional, all defaulted
+  entry: src/bin.sh
+  partials: src/__paths.txt
+  minify: off
+  docs: on
+```
+
+The `interface` block is what makes a package discoverable: `sherpa list --json` prints the manifest as JSON, so an agent can pick the right tool from its `description` and `when` fields without reading any source.
+
 ### Local Libraries
 
-To create your own local library, use something as `sherpa new bob lib`. This would scafold a library version of a BashBox in `$SCD/lib` with that structure:
+To create your own local library, use something as `sherpa new bob lib`. This would scaffold a library version of a BashBox in `$SCD/lib` with that structure:
 
 ```bash
 # home/user/sherpa/lib/bob
@@ -105,12 +139,29 @@ So far, we can install remote BashBoxes or Libs from Git repositories with:
 
 More details in the Documentation, and some available repos to play with soon listed here. If you intend to share some code, great :) come on the Discord Server for timely updates about the publishing part.
 
+### Environment
+
+Two directories drive everything, plus the editor. All three are overridable, so a dev checkout or a throw-away sandbox can be used without touching the real installation:
+
+| **Variable**          | **Default**        | **What it is**                                            |
+| --------------------- | ------------------ | --------------------------------------------------------- |
+| `SHERPA_DOT_DIR`      | `~/.sherpa`        | The Sh:erpa clone and runtime, `$SDD`                     |
+| `SHERPA_CUSTOM_DIR`   | `~/sherpa`         | Your boxes, libs, templates and registers, `$SCD`         |
+| `SHERPA_EDITOR`       | `$EDITOR`, `vim`   | The editor opened by `sherpa edit` and `sherpa aliases`   |
+
+Export them before calling `sherpa`, for example to test a checkout without installing it:
+
+```bash
+SHERPA_DOT_DIR=/tmp/sherpa-dev SHERPA_CUSTOM_DIR=/tmp/sherpa-custom \
+  /tmp/sherpa-dev/bin/sherpa help
+```
+
 ## Features
 
 Check **[the Sh:erpa Website](https://sherpa-cli.netlify.app)** or come talk in the **[Discord](https://discord.gg/66bQJ6cuXG)**, but some included features are:
 
 - Modular + build-step workflow
-- Pug-like semantic formating
+- Pug-like semantic formatting
 - Non verbose styling options
 - CRUD operations on .yaml files
 - Fetch API data and use JSON in Bash
@@ -119,24 +170,32 @@ Check **[the Sh:erpa Website](https://sherpa-cli.netlify.app)** or come talk in 
 - Docs generation from comments
 - Install/Up/Remove remote BashBox or Lib
 - Source local libs with `use "dir/file"`
+- Machine-readable inventory: `sherpa list --json`
+- Overridable paths, for dev checkouts and sandboxes
+- One command table, so the help screen and the router cannot drift apart
 - Helpers for env variables or package data
 - Helper for `Are you sure? (y/n)` confirm
 - ...to name some of them.
+
+What Sh:erpa is, and what it deliberately is *not*, is written down in [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ### Commands
 
 | 🔗                                                              | **Command**                  | **Description**                                         |
 | --------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------- |
 | [🔗](https://sherpa-cli.netlify.app/commands/sherpa)            | `sherpa`                     | Dashboard. List of local/remote scripts & libs          |
+| [🔗](https://sherpa-cli.netlify.app/commands/package/list)      | `sherpa list, ls, boxes`     | List local BashBoxes & Libs (`--json` for machines)     |
 | [🔗](https://sherpa-cli.netlify.app/commands/package/new)       | `sherpa new <myPackage>`     | Create a BashBox directory and script                   |
 | [🔗](https://sherpa-cli.netlify.app/commands/package/new)       | `sherpa new <myPackage> lib` | Create a BashLib directory and library file             |
 | [🔗](https://sherpa-cli.netlify.app/commands/package/rm)        | `sherpa rmBox <boxName>`     | Delete a local BashBox and clean registers              |
 | [🔗](https://sherpa-cli.netlify.app/commands/package/rm)        | `sherpa rmLib <libName>`     | Delete a local BashLib and clean registers              |
+| [🔗](https://sherpa-cli.netlify.app/commands/package/list)      | `sherpa localBox <boxName>`  | Show the details of one local BashBox                   |
 | [🔗](https://sherpa-cli.netlify.app/commands/package/install)   | `sherpa install ...`         | See docs. Installing a remote BashBox or Lib            |
 | [🔗](https://sherpa-cli.netlify.app/commands/package/uninstall) | `sherpa uninstall ...`       | See docs. Uninstalling a remote BashBox or Lib          |
-| [🔗](https://sherpa-cli.netlify.app/commands/package/update)    | `sherpa update <boxName>`    | Update an installed BashBox                             |
+| [🔗](https://sherpa-cli.netlify.app/commands/package/update)    | `sherpa upBox <boxName>`     | Update an installed BashBox                             |
+| [🔗](https://sherpa-cli.netlify.app/commands/package/update)    | `sherpa update <boxName>`    | Update an installed BashBox or Lib                      |
 | [🔗](https://sherpa-cli.netlify.app/commands/package/update)    | `sherpa upLib <libName>`     | Update an installed BashLib                             |
-| [🔗](https://sherpa-cli.netlify.app/commands/package/update)    | `sherpa self-update`         | Update sh:erpa itself to the lastes version             |
+| [🔗](https://sherpa-cli.netlify.app/commands/package/update)    | `sherpa self-update`         | Update Sh:erpa itself to the latest version             |
 | [🔗](https://sherpa-cli.netlify.app/commands/package/init)      | `sherpa init`                | Just like 'new' but from an existing directory          |
 | [🔗](https://sherpa-cli.netlify.app/commands/build/build)       | `sherpa b, build`            | Build the myScript.sh and optimise things               |
 | [🔗](https://sherpa-cli.netlify.app/commands/build/watch)       | `sherpa w, watch`            | Watching for changes and build on file-save             |
@@ -151,12 +210,13 @@ Check **[the Sh:erpa Website](https://sherpa-cli.netlify.app)** or come talk in 
 | [🔗](https://sherpa-cli.netlify.app/commands/general/edit)      | `sherpa e, edit basecamp`    | Open the ~/.sherpa/basecamp.sh file                     |
 | [🔗](https://sherpa-cli.netlify.app/commands/general/aliases)   | `sherpa aliases`             | List/edit the aliases created with Aliasman             |
 | [🔗](https://sherpa-cli.netlify.app/commands/general/links)     | `sherpa links`               | List the Symlinks in ~/.sherpa/bin. (Old command)       |
+| -                                                                | `sherpa version, -v`         | Show the Sh:erpa version                                |
 
-Since relative paths are used, some commands need to be used from a package root directoy: build, watch, run, test, doc, compile, edit.
+Since relative paths are used, some commands need to be used from a package root directory: build, watch, run, test, doc, compile, edit.
 
 ### Aliases
 
-Upon first install, some aliases are created via Aliasman. They can be visualised and eventually changed via `sherpa aliases` command, wich is just a shortcut for `aliasman -e` and opens the file storing them (with the default editor, like vim).
+Upon first install, some aliases are created via Aliasman. They can be visualised and eventually changed via `sherpa aliases` command, which is just a shortcut for `aliasman -e` and opens the file storing them (with the default editor, like vim).
 
 | **alias** | **replace**           | **effect**                      |
 | --------- | --------------------- | ------------------------------- |
