@@ -8,7 +8,7 @@ sherpa: 1
 package:
   name: Sh:erpa
   description: "Turn agent-written shell into a real, portable command."
-  version: 0.5.4
+  version: 0.6.0
   repo: github.com/SherpaCLI/sherpa
   executable: sherpa
   type: dotDir
